@@ -3,16 +3,15 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable; // ✅ Important
+use Illuminate\Notifications\Notifiable;
 
-class Company extends Model
+class Company extends Authenticatable
 {
-    use HasFactory;
+    use HasFactory, Notifiable;
 
-    // Table name (optional if it matches plural of model)
     protected $table = 'companies';
 
-    // Fields you allow for mass assignment
     protected $fillable = [
         'name',
         'address',
@@ -37,8 +36,8 @@ class Company extends Model
         'logo',
     ];
 
-    // Hide sensitive fields when converting to array/json
     protected $hidden = [
         'password',
+        'remember_token',
     ];
 }

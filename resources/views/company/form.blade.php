@@ -5,9 +5,9 @@
 @section('page-title', 'Edit Company Profile')
 
 @section('content')
-<div class="container mt-4">
+<div class="container mt-5">
 
-    {{-- Success / Error Messages --}}
+    {{-- Alerts --}}
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             ✅ {{ session('success') }}
@@ -32,141 +32,212 @@
         </div>
     @endif
 
-    {{-- Profile Form --}}
-    <div class="card shadow-sm">
-        <div class="card-header">
-            <h5 class="mb-0">Company Profile</h5>
+    {{-- Advanced Profile Form --}}
+    <div class="card shadow-lg border-0 rounded-4">
+        <div class="card-header text-white rounded-top-4 " style="background: linear-gradient(90deg, #00ffff, #f5deb3);">
+            <h4 class="mb-0 text-dark"><i class="bi bi-building text-dark"></i> Company Profile</h4>
         </div>
-        <div class="card-body">
-           <form action="{{ route('company.storeprofile') }}" method="POST" enctype="multipart/form-data">
-    @csrf
+        <div class="card-body p-4">
+            <form action="{{ route('company.storeprofile') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <input type="hidden" name="id" value="{{ $company->id ?? '' }}">
 
-    <input type="hidden" name="id" value="{{ $company->id ?? '' }}">
+                <div class="row g-4">
 
-    <div class="row g-3">
+                    {{-- Bill Number --}}
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="text" name="bill_no" class="form-control" 
+                                value="{{ old('bill_no', $company->bill_no ?? '') }}" 
+                                placeholder="Bill Number" required>
+                            <label>Bill Number <span class="text-danger">*</span></label>
+                        </div>
+                        <small class="text-muted">Format: PREFIX-YEAR-SEQ</small>
+                    </div>
 
-        {{-- Bill Number --}}
-        <div class="col-md-4">
-            <label class="form-label">Bill Number <span class="text-danger">*</span></label>
-           <input type="text" name="bill_no" class="form-control" 
-       value="{{ old('bill_no', $company->bill_no ?? '') }}" 
-       placeholder="e.g., INV-2025-001" required>
+                    {{-- Company Name --}}
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <input type="text" name="name" class="form-control" 
+                                   value="{{ old('name', $company->name ?? '') }}" placeholder="Company Name" required>
+                            <label>Company Name <span class="text-danger">*</span></label>
+                        </div>
+                    </div>
 
-            <small class="text-muted">Format: PREFIX-YEAR-SEQ</small>
-        </div>
+                    {{-- Address --}}
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <input type="text" name="address" class="form-control" 
+                                   value="{{ old('address', $company->address ?? '') }}" placeholder="Address" required>
+                            <label>Address <span class="text-danger">*</span></label>
+                        </div>
+                    </div>
 
-        {{-- Basic Details --}}
-        <div class="col-md-6">
-            <label class="form-label">Company Name <span class="text-danger">*</span></label>
-            <input type="text" name="name" class="form-control form-control-lg" 
-                   value="{{ old('name', $company->name ?? '') }}" placeholder="Enter company name" required>
-        </div>
-        <div class="col-md-6">
-            <label class="form-label">Address <span class="text-danger">*</span></label>
-            <input type="text" name="address" class="form-control form-control-lg" 
-                   value="{{ old('address', $company->address ?? '') }}" placeholder="Enter company address" required>
-        </div>
+                    {{-- State --}}
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="text" name="itstate" class="form-control" 
+                                   value="{{ old('itstate', $company->itstate ?? '') }}" placeholder="State" required>
+                            <label>State <span class="text-danger">*</span></label>
+                        </div>
+                    </div>
 
-        <div class="col-md-4">
-            <label class="form-label">State <span class="text-danger">*</span></label>
-            <input type="text" name="itstate" class="form-control" 
-                   value="{{ old('itstate', $company->itstate ?? '') }}" placeholder="Enter state" required>
-        </div>
-        <div class="col-md-4">
-            <label class="form-label">City <span class="text-danger">*</span></label>
-            <input type="text" name="city" class="form-control" 
-                   value="{{ old('city', $company->city ?? '') }}" placeholder="Enter city" required>
-        </div>
-        <div class="col-md-4">
-            <label class="form-label">Pincode</label>
-            <input type="text" name="pincode" class="form-control" 
-                   value="{{ old('pincode', $company->pincode ?? '') }}" placeholder="e.g., 110001">
-        </div>
+                    {{-- City --}}
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="text" name="city" class="form-control" 
+                                   value="{{ old('city', $company->city ?? '') }}" placeholder="City" required>
+                            <label>City <span class="text-danger">*</span></label>
+                        </div>
+                    </div>
 
-        <div class="col-md-4">
-            <label class="form-label">District</label>
-            <input type="text" name="district" class="form-control" 
-                   value="{{ old('district', $company->district ?? '') }}" placeholder="Enter district">
-        </div>
-        <div class="col-md-4">
-            <label class="form-label">Mobile <span class="text-danger">*</span></label>
-            <input type="tel" name="mobile" class="form-control" 
-                   value="{{ old('mobile', $company->mobile ?? '') }}" placeholder="Enter mobile number" required>
-        </div>
-        <div class="col-md-4">
-            <label class="form-label">Email <span class="text-danger">*</span></label>
-            <input type="email" name="email" class="form-control" 
-                   value="{{ old('email', $company->email ?? '') }}" placeholder="Enter email" required>
-        </div>
+                    {{-- Pincode --}}
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="text" name="pincode" class="form-control" 
+                                   value="{{ old('pincode', $company->pincode ?? '') }}" placeholder="Pincode">
+                            <label>Pincode</label>
+                        </div>
+                    </div>
 
-        <div class="col-md-6">
-            <label class="form-label">Website</label>
-            <input type="url" name="website" class="form-control" 
-                   value="{{ old('website', $company->website ?? '') }}" placeholder="https://example.com">
-        </div>
-        <div class="col-md-6">
-            <label class="form-label">Company Logo</label>
-            <input type="file" name="logo" class="form-control" accept="image/*">
-            @if(!empty($company->logo))
-                <small class="d-block mt-1">Current: <img src="{{ url('public/company/logo/'.$company->logo) }}" height="40"></small>
-            @endif
-        </div>
+                    {{-- District --}}
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="text" name="district" class="form-control" 
+                                   value="{{ old('district', $company->district ?? '') }}" placeholder="District">
+                            <label>District</label>
+                        </div>
+                    </div>
 
-        {{-- Registration Details --}}
-        <div class="col-md-6">
-            <label class="form-label">GST Number</label>
-            <input type="text" name="gst_no" class="form-control" 
-                   value="{{ old('gst_no', $company->gst_no ?? '') }}" placeholder="Enter GST number">
-        </div>
-        <div class="col-md-6">
-            <label class="form-label">PAN Number</label>
-            <input type="text" name="pan_no" class="form-control" 
-                   value="{{ old('pan_no', $company->pan_no ?? '') }}" placeholder="Enter PAN number">
-        </div>
+                    {{-- Mobile --}}
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="tel" name="mobile" class="form-control" 
+                                   value="{{ old('mobile', $company->mobile ?? '') }}" placeholder="Mobile" required>
+                            <label>Mobile <span class="text-danger">*</span></label>
+                        </div>
+                    </div>
 
-        {{-- Financial Year --}}
-        <div class="col-md-6">
-            <label class="form-label">Financial Year Start</label>
-            <input type="date" name="fy_start" class="form-control" value="{{ old('fy_start', $company->fy_start ?? '') }}">
-        </div>
-        <div class="col-md-6">
-            <label class="form-label">Financial Year End</label>
-            <input type="date" name="fy_end" class="form-control" value="{{ old('fy_end', $company->fy_end ?? '') }}">
-        </div>
+                    {{-- Email --}}
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="email" name="email" class="form-control" 
+                                   value="{{ old('email', $company->email ?? '') }}" placeholder="Email" required>
+                            <label>Email <span class="text-danger">*</span></label>
+                        </div>
+                    </div>
 
-        {{-- Bank Details --}}
-        <div class="col-md-4">
-            <label class="form-label">Bank Name</label>
-            <input type="text" name="bank_name" class="form-control" placeholder="Enter bank name" value="{{ old('bank_name', $company->bank_name ?? '') }}">
-        </div>
-        <div class="col-md-4">
-            <label class="form-label">Account Number</label>
-            <input type="text" name="account_no" class="form-control" placeholder="Enter account number" value="{{ old('account_no', $company->account_no ?? '') }}">
-        </div>
-        <div class="col-md-4">
-            <label class="form-label">IFSC Code</label>
-            <input type="text" name="ifsc" class="form-control" placeholder="Enter IFSC code" value="{{ old('ifsc', $company->ifsc ?? '') }}">
-        </div>
+                    {{-- Website --}}
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <input type="url" name="website" class="form-control" 
+                                   value="{{ old('website', $company->website ?? '') }}" placeholder="Website">
+                            <label>Website</label>
+                        </div>
+                    </div>
 
-        {{-- Login Credentials --}}
-        <div class="col-md-6">
-            <label class="form-label">Username <span class="text-danger">*</span></label>
-            <input type="text" name="username" class="form-control" placeholder="Enter username" value="{{ old('username', $company->username ?? '') }}" required>
-        </div>
-        <div class="col-md-6">
-            <label class="form-label">Password</label>
-            <input type="password" name="password" class="form-control" placeholder="Leave blank to keep current">
-        </div>
-    </div>
+                    {{-- Logo Upload --}}
+                    <div class="col-md-6">
+                        <label class="form-label">Company Logo</label>
+                        <input type="file" name="logo" class="form-control" accept="image/*">
+                        @if(!empty($company->logo))
+                            <div class="mt-2">
+                                <img src="{{ url('public/company/logo/'.$company->logo) }}" height="60" class="rounded shadow-sm">
+                            </div>
+                        @endif
+                    </div>
 
-    <div class="mt-4">
-        <button type="submit" class="btn btn-success btn-lg">
-            💾 Save Profile
-        </button>
-    </div>
-</form>
+                    {{-- GST & PAN --}}
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <input type="text" name="gst_no" class="form-control" 
+                                   value="{{ old('gst_no', $company->gst_no ?? '') }}" placeholder="GST Number">
+                            <label>GST Number</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <input type="text" name="pan_no" class="form-control" 
+                                   value="{{ old('pan_no', $company->pan_no ?? '') }}" placeholder="PAN Number">
+                            <label>PAN Number</label>
+                        </div>
+                    </div>
 
+                    {{-- Financial Year --}}
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <input type="date" name="fy_start" class="form-control" value="{{ old('fy_start', $company->fy_start ?? '') }}">
+                            <label>Financial Year Start</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <input type="date" name="fy_end" class="form-control" value="{{ old('fy_end', $company->fy_end ?? '') }}">
+                            <label>Financial Year End</label>
+                        </div>
+                    </div>
+
+                    {{-- Bank Details --}}
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="text" name="bank_name" class="form-control" placeholder="Bank Name" value="{{ old('bank_name', $company->bank_name ?? '') }}">
+                            <label>Bank Name</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="text" name="account_no" class="form-control" placeholder="Account Number" value="{{ old('account_no', $company->account_no ?? '') }}">
+                            <label>Account Number</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="text" name="ifsc" class="form-control" placeholder="IFSC" value="{{ old('ifsc', $company->ifsc ?? '') }}">
+                            <label>IFSC Code</label>
+                        </div>
+                    </div>
+
+                    {{-- Login Credentials --}}
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <input type="text" name="username" class="form-control" placeholder="Username" value="{{ old('username', $company->username ?? '') }}" required>
+                            <label>Username <span class="text-danger">*</span></label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <input type="password" name="password" class="form-control" placeholder="Leave blank to keep current">
+                            <label>Password</label>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="mt-4 d-flex justify-content-end">
+                    <button type="submit" class="btn btn-primary btn-lg shadow-sm text-dark" style=" background: linear-gradient(90deg, #00ffff, #f5deb3);">
+                        <i class="bi bi-save"></i> Save Profile
+                    </button>
+                </div>
+
+            </form>
         </div>
     </div>
 </div>
+
+{{-- Optional Bootstrap Icons --}}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+{{-- Custom CSS --}}
+<style>
+    .form-floating > label {
+        font-weight: 500;
+    }
+    .card-header h4 i {
+        margin-right: 8px;
+    }
+    .form-control:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    }
+</style>
 @endsection

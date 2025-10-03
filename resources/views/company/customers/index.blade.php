@@ -15,7 +15,7 @@
     {{-- Filter Section --}}
     <div class="p-3 mb-4 shadow-sm" style="background-color: #f8f9fa; border-radius: 5px;">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="mb-0">Filter Customers</h5>
+            <h5 class="mb-0 c  text-dark">Filter Customers</h5>
             <a href="{{ route('admin.customers.create') }}" 
                class="btn btn-primary btn-sm d-flex align-items-center justify-content-center" 
                style="width: 36px; height: 36px; font-size: 18px;">
@@ -36,13 +36,13 @@
     <!-- Mobile collapse wrapper -->
     <div class="collapse d-md-flex row g-2 w-100" id="mobileFilterFields">
         <div class="col-12 col-md-2">
-            <label class="form-label small">Name</label>
+            <label class="form-label small  text-dark">Name</label>
             <input type="text" name="name" class="form-control form-control-sm" 
                    placeholder="Customer Name" value="{{ request('name') }}">
         </div>
 
         <div class="col-12 col-md-2">
-            <label class="form-label small">Group</label>
+            <label class="form-label smal  text-dark">Group</label>
             <select name="customer_group" class="form-select form-select-sm">
                 <option value="">-- Select Group --</option>
                 @foreach(DB::table('groups')->pluck('customer_group') as $group)
@@ -54,19 +54,19 @@
         </div>
 
         <div class="col-12 col-md-2">
-            <label class="form-label small">City</label>
+            <label class="form-label small  text-dark">City</label>
             <input type="text" name="city" class="form-control form-control-sm" 
                    placeholder="City" value="{{ request('city') }}">
         </div>
 
         <div class="col-12 col-md-2">
-            <label class="form-label small">Phone</label>
+            <label class="form-label small  text-dark">Phone</label>
             <input type="text" name="phone" class="form-control form-control-sm" 
                    placeholder="Phone" value="{{ request('phone') }}">
         </div>
 
         <div class="col-12 col-md-2">
-            <label class="form-label small">State</label>
+            <label class="form-label small  text-dark">State</label>
             <input type="text" name="state" class="form-control form-control-sm" 
                    placeholder="State" value="{{ request('state') }}">
         </div>

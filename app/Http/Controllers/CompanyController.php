@@ -15,8 +15,18 @@ class CompanyController extends Controller
    
 public function subDashboard()
 {
- 
-    return view('sub.dashboard');
+  $companyId = session('company_id'); // assuming company_id stored in session
+        $company = $companyId ? Company::find($companyId) : null;
+  if (!$company) {
+        return redirect()->route('company.login')->with('error', 'comapny not found.');
+    }
+           // Get latest rate for pre-filling form
+        $latest = DB::table('metal_rates')->latest('rate_date')->first();
+
+        return view('sub.dashboard', [
+            'latest' => $latest
+        ]);
+
 }
 
 
@@ -195,21 +205,29 @@ public function login(Request $request)
     $totalCompanies =Company::count();
     $totalInvoices = 125; // example
     $currentFinancialYear = '2025-2026';
-
+      $companyId = session('company_id'); // assuming company_id stored in session
+        $company = $companyId ? Company::find($companyId) : null;
+  if (!$company) {
+        return redirect()->route('company.login')->with('error', 'Superadmin not found.');
+    }
     return view('company.dashboard', compact('totalCompanies', 'totalInvoices', 'currentFinancialYear'));
 }
 public function createprofile()
     {
+        
         // If logged-in company, fetch details
         $companyId = session('company_id'); // assuming company_id stored in session
         $company = $companyId ? Company::find($companyId) : null;
-
+  if (!$company) {
+        return redirect()->route('company.login')->with('error', 'company not found.');
+    }
         return view('company.form', compact('company'));
     }
 
     // Store new company
 public function storeprofile(Request $request)
 {
+
     // Validate inputs
     $request->validate([
         'name'        => 'required|string|max:255',

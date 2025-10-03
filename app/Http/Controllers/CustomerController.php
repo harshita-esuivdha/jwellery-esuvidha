@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Customer;
 use Illuminate\Support\Facades\DB;
-
+use App\Models\Company;
 class CustomerController extends Controller
 {
 public function search(Request $request)
@@ -58,6 +58,11 @@ public function analysis($customerId)
     // List Customers
     public function index(Request $request)
 {
+       $companyId = session('company_id'); // assuming company_id stored in session
+        $company = $companyId ? Company::find($companyId) : null;
+  if (!$company) {
+        return redirect()->route('company.login')->with('error', 'company not found.');
+    }
     $query = DB::table('customers');
 
     // Filters
@@ -163,7 +168,11 @@ public function store(Request $request)
     // Edit Customer
 // Edit Customer
 public function edit($id)
-{
+{ $companyId = session('company_id'); // assuming company_id stored in session
+        $company = $companyId ? Company::find($companyId) : null;
+  if (!$company) {
+        return redirect()->route('company.login')->with('error', 'company not found.');
+    }
     $customer = Customer::where('id', $id)
                         ->where('cid', session('company_id'))
                         ->firstOrFail();
@@ -173,7 +182,11 @@ public function edit($id)
 
 // Update Customer
 public function update(Request $request, $id)
-{
+{  $companyId = session('company_id'); // assuming company_id stored in session
+        $company = $companyId ? Company::find($companyId) : null;
+  if (!$company) {
+        return redirect()->route('company.login')->with('error', 'company not found.');
+    }
     $customer = Customer::where('id', $id)
                         ->where('cid', session('company_id'))
                         ->firstOrFail();

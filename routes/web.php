@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\SuperadminController;
+use App\Http\Controllers\MetalRateController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -63,3 +64,12 @@ Route::get('/sub/dashboard', [CompanyController::class, 'subDashboard'])
 });
 Route::get('admin/customers/{id}/analysis', [CustomerController::class, 'analysis'])
     ->name('admin.customers.analysis');
+Route::prefix('company')->group(function () {
+    // Store or update rates
+    Route::post('/dashboard-analysis', [MetalRateController::class, 'store'])
+        ->name('dashboard.analysis.store');
+
+    // Fetch rates for selected date (AJAX)
+    Route::get('/dashboard-analysis/{date}', [MetalRateController::class, 'getRates'])
+        ->name('dashboard.analysis.get'); // ✅ give this a name
+});

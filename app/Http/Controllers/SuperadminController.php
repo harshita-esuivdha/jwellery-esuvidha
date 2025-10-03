@@ -157,7 +157,7 @@ public function profile()
     $superadmin = Superadmin::find($superadminId);
 
     if (!$superadmin) {
-        return redirect()->route('superadmin.login')->with('error', 'Superadmin not found.');
+        return redirect()->route('company.login')->with('error', 'Superadmin not found.');
     }
 
     return view('superadmin.profile', compact('superadmin'));
@@ -169,7 +169,7 @@ public function updateProfile(Request $request)
      $superadminId = session('superadmin_id');
 
     if (!$superadminId) {
-        return redirect()->route('superadmin.login')->with('error', 'Please login first.');
+        return redirect()->route('company.login')->with('error', 'Please login first.');
     }
 
     $request->validate([
