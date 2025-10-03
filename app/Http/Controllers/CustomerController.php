@@ -83,7 +83,13 @@ public function analysis($customerId)
     }
 
     // Use paginate instead of get
-    $customers = $query->orderBy('name', 'asc')->paginate(10); // 10 per page
+       // Use paginate instead of get
+   $companyId = session('company_id');
+
+// Fetch customers belonging to this company, ordered by name, with pagination
+$customers = Customer::where('cid', $companyId)
+    ->orderBy('name', 'asc')
+    ->paginate(10);
 
     return view('company.customers.index', compact('customers'));
 }
