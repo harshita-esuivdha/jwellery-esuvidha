@@ -6,6 +6,8 @@ use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\SuperadminController;
 use App\Http\Controllers\MetalRateController;
+use App\Http\Controllers\ItemController;
+use App\Http\Controllers\BillController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -70,6 +72,36 @@ Route::prefix('company')->group(function () {
         ->name('dashboard.analysis.store');
 
     // Fetch rates for selected date (AJAX)
-    Route::get('/dashboard-analysis/{date}', [MetalRateController::class, 'getRates'])
-        ->name('dashboard.analysis.get'); // ✅ give this a name
+   Route::get('/dashboard-analysis/{date}', [MetalRateController::class, 'fetchRates'])
+     ->name('dashboard.analysis.get');// ✅ give this a name
 });
+Route::get('/customer', [CustomerController::class, 'index'])
+    ->name('company.customers.index');
+
+
+Route::prefix('items')->group(function () {
+    Route::get('/', [ItemController::class, 'index'])->name('items.index');      // View
+    Route::get('/create', [ItemController::class, 'create'])->name('items.create'); // Add
+    Route::post('/store', [ItemController::class, 'store'])->name('items.store');   // Store
+    Route::get('/edit/{id}', [ItemController::class, 'edit'])->name('items.edit');  // Edit
+Route::put('items/{id}', [ItemController::class, 'update'])->name('items.update');
+
+    Route::delete('/delete/{id}', [ItemController::class, 'destroy'])->name('items.destroy'); // Delete
+});
+Route::prefix('billing')->group(function () {
+  // Show create bill page
+Route::get('/billing/create', [BillController::class, 'create'])->name('billing.create');
+
+// Show all bills page
+Route::get('/billing', [BillController::class, 'create'])->name('billing.index');
+
+// AJAX: fetch item rate
+Route::get('/billing/items/{item}', [BillController::class, 'getItemRate'])->name('billing.getItemRate');
+
+// Store bill
+
+
+});
+Route::get('/metal-rates/latest', [MetalRateController::class, 'latest']);
+
+Route::post('/invoices/store', [BillController::class, 'store'])->name('invoices.store');

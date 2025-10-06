@@ -56,16 +56,17 @@ public function analysis($customerId)
 
 
     // List Customers
-    public function index(Request $request)
+     public function index(Request $request)
 {
-       $companyId = session('company_id'); // assuming company_id stored in session
-        $company = $companyId ? Company::find($companyId) : null;
-  if (!$company) {
-        return redirect()->route('company.login')->with('error', 'company not found.');
-    }
-    $query = DB::table('customers');
+    $companyId = session('company_id');
 
-    // Filters
+    if (!$companyId) {
+        return redirect()->route('company.login')->with('error', 'Company not found.');
+    }
+
+    $query = Customer::where('cid', $companyId);
+
+    // Apply filters
     if ($request->filled('name')) {
         $query->where('name', 'like', '%' . $request->name . '%');
     }
@@ -82,14 +83,7 @@ public function analysis($customerId)
         $query->where('state', 'like', '%' . $request->state . '%');
     }
 
-    // Use paginate instead of get
-       // Use paginate instead of get
-   $companyId = session('company_id');
-
-// Fetch customers belonging to this company, ordered by name, with pagination
-$customers = Customer::where('cid', $companyId)
-    ->orderBy('name', 'asc')
-    ->paginate(10);
+    $customers = $query->orderBy('name', 'asc')->paginate(10)->appends($request->all());
 
     return view('company.customers.index', compact('customers'));
 }

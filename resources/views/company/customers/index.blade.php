@@ -17,8 +17,9 @@
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h5 class="mb-0 c  text-dark">Filter Customers</h5>
             <a href="{{ route('admin.customers.create') }}" 
-               class="btn btn-primary btn-sm d-flex align-items-center justify-content-center" 
-               style="width: 36px; height: 36px; font-size: 18px;">
+               class="btn btn-primary btn-sm d-flex align-items-center text-dark justify-content-center" 
+               style="width: 36px; height: 36px; font-size: 18px;  background: linear-gradient(180deg, #eec10e, #fceabb);
+    border-right: 2px solid #e6c200;"> 
                 <i class="bi bi-plus-lg"></i>
             </a>
         </div>
@@ -32,46 +33,37 @@
 </div>
 
 <!-- Filter form -->
-<form action="{{ route('admin.customers.index') }}" method="GET" class="row g-2 align-items-end">
-    <!-- Mobile collapse wrapper -->
-    <div class="collapse d-md-flex row g-2 w-100" id="mobileFilterFields">
-        <div class="col-12 col-md-2">
-            <label class="form-label small  text-dark">Name</label>
-            <input type="text" name="name" class="form-control form-control-sm" 
-                   placeholder="Customer Name" value="{{ request('name') }}">
-        </div>
+<form method="GET" action="{{ route('company.customers.index') }}" class="row g-2 align-items-end">
+    <div class="col-md-2">
+        <label class="form-label">Name</label>
+        <input type="text" name="name" class="form-control" placeholder="Customer Name" value="{{ request('name') }}">
+    </div>
 
-        <div class="col-12 col-md-2">
-            <label class="form-label smal  text-dark">Group</label>
-            <select name="customer_group" class="form-select form-select-sm">
-                <option value="">-- Select Group --</option>
-                @foreach(DB::table('groups')->pluck('customer_group') as $group)
-                    <option value="{{ $group }}" {{ request('customer_group') == $group ? 'selected' : '' }}>
-                        {{ $group }}
-                    </option>
-                @endforeach
-            </select>
-        </div>
+    <div class="col-md-2">
+        <label class="form-label">Group</label>
+        <select name="customer_group" class="form-select">
+            <option value="">All</option>
+            <option value="Customer" {{ request('customer_group') == 'Customer' ? 'selected' : '' }}>Customer</option>
+            <option value="Purchase" {{ request('customer_group') == 'Purchase' ? 'selected' : '' }}>Purchase</option>
+        </select>
+    </div>
 
-        <div class="col-12 col-md-2">
-            <label class="form-label small  text-dark">City</label>
-            <input type="text" name="city" class="form-control form-control-sm" 
-                   placeholder="City" value="{{ request('city') }}">
-        </div>
+    <div class="col-md-2">
+        <label class="form-label">City</label>
+        <input type="text" name="city" class="form-control" placeholder="City" value="{{ request('city') }}">
+    </div>
 
-        <div class="col-12 col-md-2">
-            <label class="form-label small  text-dark">Phone</label>
-            <input type="text" name="phone" class="form-control form-control-sm" 
-                   placeholder="Phone" value="{{ request('phone') }}">
-        </div>
+    <div class="col-md-2">
+        <label class="form-label">Phone</label>
+        <input type="text" name="phone" class="form-control" placeholder="Phone" value="{{ request('phone') }}">
+    </div>
 
-        <div class="col-12 col-md-2">
-            <label class="form-label small  text-dark">State</label>
-            <input type="text" name="state" class="form-control form-control-sm" 
-                   placeholder="State" value="{{ request('state') }}">
-        </div>
+    <div class="col-md-2">
+        <label class="form-label">State</label>
+        <input type="text" name="state" class="form-control" placeholder="State" value="{{ request('state') }}">
+    </div>
 
-     <div class="col-12 col-md-2 d-flex gap-2  mt-md-0 align-items-center ">
+   <div class="col-12 col-md-2 d-flex gap-2  mt-md-0 align-items-center ">
     <button type="submit" class="btn btn-primary flex-fill btn-xs">Apply</button>
     <a href="{{ route('admin.customers.index') }}" class="btn btn-secondary flex-fill btn-xs">Reset</a>
 </div>
@@ -85,52 +77,8 @@
     }
 </style>
 
-    </div>
-
-    <!-- Desktop view: always show filters -->
-    {{-- <div class="d-none d-md-flex row g-2 w-100">
-        <div class="col-md-2">
-            <label class="form-label small">Name</label>
-            <input type="text" name="name" class="form-control form-control-sm" 
-                   placeholder="Customer Name" value="{{ request('name') }}">
-        </div>
-
-        <div class="col-md-2">
-            <label class="form-label small">Group</label>
-            <select name="customer_group" class="form-select form-select-sm">
-                <option value="">-- Select Group --</option>
-                @foreach(DB::table('groups')->pluck('customer_group') as $group)
-                    <option value="{{ $group }}" {{ request('customer_group') == $group ? 'selected' : '' }}>
-                        {{ $group }}
-                    </option>
-                @endforeach
-            </select>
-        </div>
-
-        <div class="col-md-2">
-            <label class="form-label small">City</label>
-            <input type="text" name="city" class="form-control form-control-sm" 
-                   placeholder="City" value="{{ request('city') }}">
-        </div>
-
-        <div class="col-md-2">
-            <label class="form-label small">Phone</label>
-            <input type="text" name="phone" class="form-control form-control-sm" 
-                   placeholder="Phone" value="{{ request('phone') }}">
-        </div>
-
-        <div class="col-md-2">
-            <label class="form-label small">State</label>
-            <input type="text" name="state" class="form-control form-control-sm" 
-                   placeholder="State" value="{{ request('state') }}">
-        </div>
-
-        <div class="col-md-2 d-flex gap-2">
-            <button type="submit" class="btn btn-sm btn-primary">Apply</button>
-            <a href="{{ route('admin.customers.index') }}" class="btn btn-sm btn-secondary">Reset</a>
-        </div>
-    </div> --}}
 </form>
+
 
     </div>
 

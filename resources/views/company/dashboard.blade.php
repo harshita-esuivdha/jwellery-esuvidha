@@ -11,7 +11,7 @@
 <!-- Bootstrap & Icons -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <!-- Favicon -->
 <link rel="icon" href="{{ url('public/Main logo/image.png') }}" type="image/x-icon">
 
@@ -20,19 +20,19 @@
 body {
     font-family: 'Poppins', sans-serif;
     margin: 0;
-    background: linear-gradient(to bottom, #1a1a1a, #121212);
-    color: #f5deb3;
+    background: linear-gradient(to bottom right, #fffdf3, #fff7d6);
+    color: #3c2f0d;
     overflow-x: hidden;
     min-height: 100vh;
 }
 
-/* Particle background */
+/* Animated subtle background (golden sparks) */
 #particles-bg {
     position: fixed;
     top: 0; left: 0;
     width: 100%; height: 100%;
     z-index: 0;
-    opacity: 0.25;
+    opacity: 0.35;
 }
 
 /* === Sidebar === */
@@ -41,28 +41,23 @@ body {
     top: 0; left: 0;
     width: 260px;
     height: 100vh;
-    background: rgba(30,30,30,0.95);
-    backdrop-filter: blur(8px);
-    border-right: 1px solid rgba(255,255,255,0.1);
+    background: linear-gradient(180deg, #fff8dc, #fceabb);
+    border-right: 2px solid #e6c200;
     border-radius: 0 20px 20px 0;
     padding: 25px;
     z-index: 999;
     transition: 0.3s;
-    box-shadow: 0 0 25px rgba(255,223,0,0.05);
+    box-shadow: 0 0 20px rgba(230, 194, 0, 0.2);
 }
 .sidebar .logo img {
     max-width: 150px;
     border-radius: 12px;
-    transition: transform 0.3s, box-shadow 0.3s;
-}
-.sidebar .logo img:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 15px #f5deb3, 0 0 25px #00ffff inset;
+    margin-bottom: 20px;
 }
 .sidebar a {
     display: flex;
     align-items: center;
-    color: #f5deb3;
+    color: #3c2f0d;
     padding: 12px 18px;
     margin: 10px 0;
     border-radius: 15px;
@@ -72,22 +67,23 @@ body {
     transition: 0.3s;
     position: relative;
 }
-.sidebar a::before {
-    content: '';
-    position: absolute;
-    left: 0; top: 0;
-    width: 0%; height: 100%;
-    background: rgba(255,223,0,0.2);
-    border-radius: 15px;
-    transition: 0.3s;
+.sidebar a:hover {
+    background: rgba(230, 194, 0, 0.15);
+    color: #c49a00;
 }
-.sidebar a:hover::before { width: 100%; }
-.sidebar a i { font-size: 1.2rem; margin-right: 12px; transition: transform 0.3s; }
-.sidebar a:hover i { transform: scale(1.2) rotate(5deg); }
+.sidebar a i {
+    font-size: 1.2rem;
+    margin-right: 12px;
+    transition: transform 0.3s;
+}
+.sidebar a:hover i {
+    transform: scale(1.2) rotate(5deg);
+}
 .sidebar a.active-link {
-    background: linear-gradient(90deg, #00ffff, #f5deb3);
-    color: #000;
-    box-shadow: 0 0 15px #f5deb3, 0 0 25px #00ffff inset;
+    background: linear-gradient(90deg, #f7d046, #ffe98a);
+    color: #3c2f0d;
+    font-weight: 600;
+    box-shadow: 0 0 15px rgba(230, 194, 0, 0.5);
 }
 
 /* === Main Content === */
@@ -100,34 +96,18 @@ body {
 
 /* === Navbar === */
 .navbar {
-    background: rgba(0,0,0,0.05);
-    backdrop-filter: blur(6px);
+    background: #fffef9;
     border-radius: 15px;
     padding: 15px 25px;
-    box-shadow: 0 2px 15px rgba(255,223,0,0.1);
+    border: 1px solid rgba(194, 150, 0, 0.15);
+    box-shadow: 0 2px 12px rgba(194, 150, 0, 0.15);
 }
 .navbar .navbar-brand {
     font-family: 'Orbitron', sans-serif;
     font-weight: 700;
     font-size: 1.2rem;
-    background: linear-gradient(90deg, #00ffff, #f5deb3);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: gradientSlide 3s linear infinite;
-}
-@keyframes gradientSlide {
-    0% { background-position: 0%; }
-    50% { background-position: 100%; }
-    100% { background-position: 0%; }
-}
-
-/* === Dashboard Cards === */
-
-
-/* === Animations === */
-@keyframes cardFadeIn {
-    0% { opacity: 0; transform: translateY(20px); }
-    100% { opacity: 1; transform: translateY(0); }
+    color: #c49a00;
+    text-shadow: 0 0 8px rgba(230,194,0,0.6);
 }
 
 /* === Mobile Sidebar === */
@@ -135,7 +115,13 @@ body {
     .sidebar { left: -280px; }
     .sidebar.active { left: 0; }
     .main-content { margin-left: 0 !important; }
-    #sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.3); z-index: 998; }
+    #sidebar-overlay {
+        display: none;
+        position: fixed; top: 0; left: 0;
+        width: 100vw; height: 100vh;
+        background: rgba(0,0,0,0.3);
+        z-index: 998;
+    }
     #sidebar-overlay.active { display: block; }
 }
 </style>
@@ -176,15 +162,55 @@ body {
     @if($company)
         <a href="{{ route('sub.dashboard') }}" class="{{ request()->routeIs('sub.dashboard') ? 'active-link' : '' }}"><i class="bi bi-speedometer2"></i> Dashboard</a>
 
-        <h6 class="text-uppercase px-3 mt-3 mb-2" style="color:#bbb;">Profile</h6>
+        <h6 class="text-uppercase px-3 mt-3 mb-2" style="color:#8a6d00;">Profile</h6>
         <a href="{{ route('Company.profile') }}" class="{{ request()->routeIs('Company.profile') ? 'active-link' : '' }}"><i class="bi bi-person"></i> Edit Profile</a>
 
-        <h6 class="text-uppercase px-3 mt-3 mb-2" style="color:#bbb;">Sale</h6>
-        <a href="{{ url('admin/customers') }}"><i class="bi bi-person-plus-fill"></i> View Customer</a>
-        <a href="{{ route('admin.customers.create') }}"><i class="bi bi-person-plus-fill"></i> Add Customer</a>
+        <h6 class="text-uppercase px-3 mt-3 mb-2" style="color:#8a6d00;">Sale</h6>
+   <a href="{{ url('admin/customers') }}" 
+   class="{{ request()->is('admin/customers') ? 'active-link' : '' }}">
+   <i class="bi bi-people"></i> View Customer
+</a>
+        <a href="{{ route('admin.customers.create') }}"class="{{ request()->routeIs('admin.customers.create') ? 'active-link' : '' }}"><i class="bi bi-person-plus-fill"></i> Add Customer</a>
+         <h6 class="text-uppercase px-3 mt-3 mb-2" style="color:#8a6d00;">Items</h6>
+<a href="{{ route('items.index') }}" 
+   class="{{ request()->routeIs('items.index') ? 'active-link' : '' }}">
+   <i class="bi bi-people"></i> View Items
+</a>
+
+<a href="{{ route('items.create') }}" 
+   class="{{ request()->routeIs('items.create') ? 'active-link' : '' }}">
+   <i class="bi bi-plus-circle"></i> Add Item
+</a>
+
+<h6 class="text-uppercase px-3 mt-3 mb-2" style="color:#8a6d00;">Bill</h6>
+
+<!-- Create Bill -->
+<a href="{{ route('billing.create') }}" 
+   class="{{ request()->routeIs('billing.create') ? 'active-link' : '' }}">
+   <i class="bi bi-people"></i> Create Bill
+</a>
+
+<!-- View Bill -->
+<a href="{{ route('billing.index') }}" 
+   class="{{ request()->routeIs('billing.index') ? 'active-link' : '' }}">
+   <i class="bi bi-plus-circle"></i> View Bill
+</a>
+
+
     @endif
 
-    <a href="{{ route('company.logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();" class="d-flex align-items-center px-3 py-2 mt-4 text-white">
+
+
+
+
+
+
+
+
+
+
+
+    <a href="{{ route('company.logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();" class="d-flex align-items-center px-3 py-2 mt-4 text-dark">
         <i class="bi bi-box-arrow-right me-2"></i> Logout
     </a>
     <form id="logout-form" action="{{ route('company.logout') }}" method="POST" style="display:none;">@csrf</form>
@@ -195,8 +221,9 @@ body {
 
 <!-- Main Content -->
 <div class="main-content">
-    <nav class="navbar d-flex justify-content-between align-items-center mb-4">
-        <button class="btn btn-outline-light d-md-none" id="sidebarToggle">
+    <nav class="navbar d-flex justify-content-between align-items-center mb-4"style=" background: linear-gradient(180deg, #fff8dc, #fceabb);
+    border-right: 2px solid #e6c200;">
+        <button class="btn btn-outline-warning d-md-none" id="sidebarToggle">
             <i class="bi bi-list"></i>
         </button>
         <span class="navbar-brand mb-0">Welcome, {{ session('company_name') }}</span>
@@ -244,32 +271,75 @@ class Particle {
     update() {
         this.x += this.speedX; this.y += this.speedY;
         this.opacity += this.opacityChange;
-        if(this.opacity>0.5||this.opacity<0.1) this.opacityChange=-this.opacityChange;
+        if(this.opacity>0.6||this.opacity<0.1) this.opacityChange=-this.opacityChange;
         if(this.x<0) this.x=canvas.width; if(this.x>canvas.width) this.x=0;
         if(this.y<0) this.y=canvas.height; if(this.y>canvas.height) this.y=0;
     }
     draw() {
-        const gradient = ctx.createRadialGradient(this.x,this.y,0,this.x,this.y,this.size*2);
-        gradient.addColorStop(0, `rgba(0,255,255, ${this.opacity})`);
-        gradient.addColorStop(0.5, `rgba(245,222,179, ${this.opacity*0.3})`);
-        gradient.addColorStop(1, 'rgba(0,255,255,0)');
+        const gradient = ctx.createRadialGradient(this.x,this.y,0,this.x,this.y,this.size*3);
+        gradient.addColorStop(0, `rgba(255,215,0, ${this.opacity})`);
+        gradient.addColorStop(0.5, `rgba(255,255,255, ${this.opacity*0.3})`);
+        gradient.addColorStop(1, 'rgba(255,215,0,0)');
         ctx.fillStyle = gradient;
         ctx.beginPath(); ctx.arc(this.x,this.y,this.size*2,0,Math.PI*2); ctx.fill();
     }
 }
-
 function initParticles() { particlesArray=[]; for(let i=0;i<150;i++) particlesArray.push(new Particle()); }
 function animate() { ctx.clearRect(0,0,canvas.width,canvas.height); particlesArray.forEach(p=>{p.update();p.draw();}); requestAnimationFrame(animate); }
 window.addEventListener('resize',()=>{resizeCanvas();initParticles();});
-canvas.addEventListener('mousemove', (e)=>{
-    particlesArray.forEach(p=>{
-        const dx = p.x - e.clientX;
-        const dy = p.y - e.clientY;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        if(dist < 100) { p.x += dx*0.01; p.y += dy*0.01; }
-    });
-});
 initParticles(); animate();
+</script>
+<script>
+/* Existing particles code remains as-is */
+
+class FloatingStar {
+    constructor() {
+        this.reset();
+    }
+    reset() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.size = Math.random() * 1.5 + 0.5;
+        this.speedX = (Math.random() - 0.5) * 0.2;
+        this.speedY = -0.2 - Math.random() * 0.3; // slowly rising
+        this.opacity = Math.random() * 0.5 + 0.2;
+    }
+    update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        if (this.y < 0) this.reset(); // respawn at bottom
+        if (this.x < 0) this.x = canvas.width;
+        if (this.x > canvas.width) this.x = 0;
+    }
+    draw() {
+        ctx.fillStyle = `rgba(255, 223, 0, ${this.opacity})`;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+let starsArray = [];
+function initStars() {
+    starsArray = [];
+    for (let i = 0; i < 50; i++) starsArray.push(new FloatingStar());
+}
+
+// Overwrite animate function to include stars
+function animateEnhanced() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw particles
+    particlesArray.forEach(p => { p.update(); p.draw(); });
+
+    // Draw floating stars
+    starsArray.forEach(s => { s.update(); s.draw(); });
+
+    requestAnimationFrame(animateEnhanced);
+}
+
+initStars();
+animateEnhanced();
 </script>
 
 </body>

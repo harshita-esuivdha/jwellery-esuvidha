@@ -41,7 +41,10 @@ return [
         'provider' => 'users',
     ],
 
-   
+    'company' => [
+        'driver' => 'session',
+        'provider' => 'companies', // make sure this exists
+    ],
 ],
 
     /*
@@ -67,6 +70,10 @@ return [
         'model' => App\Models\User::class,
     ],
 
+    'companies' => [
+        'driver' => 'eloquent',
+        'model' => App\Models\Company::class,
+    ],
 ],
 
     /*

@@ -34,7 +34,7 @@
 
     {{-- Advanced Profile Form --}}
     <div class="card shadow-lg border-0 rounded-4">
-        <div class="card-header text-white rounded-top-4 " style="background: linear-gradient(90deg, #00ffff, #f5deb3);">
+        <div class="card-header text-white rounded-top-4 " style="  background: linear-gradient(135deg, #fdeb86, #ffb347);">
             <h4 class="mb-0 text-dark"><i class="bi bi-building text-dark"></i> Company Profile</h4>
         </div>
         <div class="card-body p-4">
@@ -214,7 +214,7 @@
                 </div>
 
                 <div class="mt-4 d-flex justify-content-end">
-                    <button type="submit" class="btn btn-primary btn-lg shadow-sm text-dark" style=" background: linear-gradient(90deg, #00ffff, #f5deb3);">
+                    <button type="submit" class="btn btn-primary btn-lg shadow-sm text-dark" style=" background: linear-gradient(135deg, #fdeb86, #ffb347);">
                         <i class="bi bi-save"></i> Save Profile
                     </button>
                 </div>

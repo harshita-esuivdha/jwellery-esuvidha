@@ -4,7 +4,7 @@
 <div class="container mt-5">
 
     <div class="card shadow-sm border-0">
-        <div class="card-header text-dark" style="background: linear-gradient(90deg, #00ffff, #f5deb3);">
+        <div class="card-header text-dark" style=" background: linear-gradient(135deg, #fdeb86, #ffb347);">
             <h4 class="mb-0">Add Customer</h4>
         </div>
         <div class="card-body">

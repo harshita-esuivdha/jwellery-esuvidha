@@ -24,10 +24,18 @@ public function getRates($date)
 
     return response()->json(['success' => false]);
 }
-
+public function latest() {
+    $latest = DB::table('metal_rates')->latest('rate_date')->first();
+    return response()->json($latest);
+}
 
 public function store(Request $request)
 {
+    $cin = session('company_id'); 
+    if (!$cin) {
+        return redirect()->route('company.login')->with('error', 'Company not found.');
+    }
+
     $request->validate([
         'rate_date' => 'required|date',
         'gold.24' => 'required|numeric',
@@ -37,7 +45,10 @@ public function store(Request $request)
         'silver.925' => 'required|numeric',
     ]);
 
-    $exists = DB::table('metal_rates')->where('rate_date', $request->rate_date)->first();
+    $exists = DB::table('metal_rates')
+                ->where('rate_date', $request->rate_date)
+                ->where('cin', $cin) // only check within this CIN
+                ->first();
 
     $data = [
         'gold_24' => $request->gold[24],
@@ -45,11 +56,15 @@ public function store(Request $request)
         'gold_18' => $request->gold[18],
         'silver_999' => $request->silver[999],
         'silver_925' => $request->silver[925],
+        'cin' => $cin,
         'updated_at' => now(),
     ];
 
     if ($exists) {
-        DB::table('metal_rates')->where('rate_date', $request->rate_date)->update($data);
+        DB::table('metal_rates')
+          ->where('rate_date', $request->rate_date)
+          ->where('cin', $cin)
+          ->update($data);
     } else {
         $data['rate_date'] = $request->rate_date;
         $data['created_at'] = now();
@@ -59,9 +74,19 @@ public function store(Request $request)
     return redirect()->back()->with('success', 'Daily metal rates saved successfully!');
 }
 
+
 public function fetchRates($date)
 {
-    $rate = DB::table('metal_rates')->where('rate_date', $date)->first();
+    $cin = session('company_id'); // logged-in company's CIN
+    if (!$cin) {
+        return response()->json(['success' => false, 'message' => 'Company not found.']);
+    }
+
+    // Fetch rate only for this company
+    $rate = DB::table('metal_rates')
+              ->where('rate_date', $date)
+              ->where('cin', $cin)
+              ->first();
 
     if ($rate) {
         return response()->json([
@@ -76,5 +101,6 @@ public function fetchRates($date)
 
     return response()->json(['success' => false]);
 }
+
 
 }
