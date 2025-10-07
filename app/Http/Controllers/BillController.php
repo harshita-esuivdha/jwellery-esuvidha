@@ -82,6 +82,66 @@ public function create()
         ]);
     }
 
+
+
+
+public function history(Request $request)
+{
+    // Base query: invoices + customer info
+  $companyId = session('company_id'); // get company ID from session
+
+$query = DB::table('invoices')
+    ->join('customers', 'invoices.customer_id', '=', 'customers.id')
+    ->select(
+        'invoices.*',
+        'customers.name as customer_name',
+        'customers.phone as customer_phone'
+    )
+    ->where('invoices.cin_id', $companyId) // filter by company
+    ->orderBy('invoices.id', 'desc');
+
+    // Filters
+    if ($request->filled('customer_name')) {
+        $query->where('customers.name', 'like', '%' . $request->customer_name . '%');
+    }
+
+    if ($request->filled('bill_no')) {
+        $query->where('invoices.bill_no', 'like', '%' . $request->bill_no . '%');
+    }
+
+    if ($request->filled('mobile')) {
+        $query->where('customers.phone', 'like', '%' . $request->mobile . '%');
+    }
+
+    $invoices = $query->paginate(15);
+
+    // Fetch all item details for these invoices
+    $invoiceItems = [];
+    foreach ($invoices as $invoice) {
+        $itemsArray = json_decode($invoice->items, true);
+        if (is_array($itemsArray)) {
+            $itemIds = collect($itemsArray)->pluck('id')->toArray();
+            $items = DB::table('items')->whereIn('id', $itemIds)->get();
+            
+            // Map quantity from invoice JSON
+            foreach ($items as $i) {
+                $qty = collect($itemsArray)->firstWhere('id', $i->id)['qty'] ?? 0;
+                $invoiceItems[$invoice->id][] = [
+                    'name' => $i->item_name,
+                    'qty' => $qty,
+                    'metal_type' => $i->metal_type,
+                    'net_weight' => $i->net_weight,
+                    'price' => $i->price,
+                ];
+            }
+        } else {
+            $invoiceItems[$invoice->id] = [];
+        }
+    }
+
+    return view('invoices.history', compact('invoices', 'invoiceItems'));
+}
+
     public function store(Request $request)
     {
         // Validate input
@@ -119,6 +179,14 @@ public function create()
 
       return redirect()->back()->with('success', 'Invoice generated successfully!');
     }
+public function destroy($id)
+    {
+        // Delete the invoice
+        DB::table('invoices')->where('id', $id)->delete();
 
+        // Optionally, redirect back with a success message
+        return redirect()->route('invoices.history')
+                         ->with('success', 'Invoice deleted successfully.');
+    }
 
 }

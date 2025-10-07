@@ -31,7 +31,13 @@
     font-size: 8pt;
     padding: 3px 5px;
 }
-
+@media print {
+    .btn-print,
+    .remove-item,
+    .remove-exchange .no-print {
+        display: none !important;
+    }
+}
 /* Exchange and other charges font smaller */
 .invoice-preview #previewExchangeTable td,
 .invoice-preview #previewExchangeTable th,
@@ -59,17 +65,94 @@
 
 /* Print adjustments */
 @media print {
-    .btn-print,
-    .remove-item,
-    .remove-exchange {
-        display: none !important;
-    }
-    .invoice-preview {
-        font-size: 8.5pt;
-    }
-    table {
-        font-size: 8pt;
-    }
+  .btn-print,
+  .remove-item,
+  .remove-exchange,
+  .no-print {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  .table-container {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body {
+    background: white !important;
+  }
+
+  table, th, td {
+    border-color: #000 !important;
+  }
+}
+
+#previewBillTable th:nth-child(1),
+#previewBillTable td:nth-child(1) {
+  width: 30px; /* Sl */
+}
+
+#previewBillTable th:nth-child(2),
+#previewBillTable td:nth-child(2) {
+  width: 30px; /* Item Name */
+}
+
+#previewBillTable th:nth-child(3),
+#previewBillTable td:nth-child(3) {
+  width: 50px; /* Purity */
+}
+
+#previewBillTable th:nth-child(4),
+#previewBillTable td:nth-child(4) {
+  width: 40px; /* Qty */
+}
+
+#previewBillTable th:nth-child(5),
+#previewBillTable td:nth-child(5),
+#previewBillTable th:nth-child(6),
+#previewBillTable td:nth-child(6) {
+  width: 40px; /* Net Wt, Gross Wt */
+}
+
+#previewBillTable th:nth-child(7),
+#previewBillTable td:nth-child(7) {
+  width: 45px; /* Rate/gm */
+}
+
+#previewBillTable th:nth-child(8),
+#previewBillTable td:nth-child(8) {
+  width: 74px; /* Gold Val */
+}
+
+#previewBillTable th:nth-child(9),
+#previewBillTable td:nth-child(9) {
+  width: 85px; /* Making/gm */
+}
+
+#previewBillTable th:nth-child(10),
+#previewBillTable td:nth-child(10),
+#previewBillTable th:nth-child(11),
+#previewBillTable td:nth-child(11) {
+  width: 55px; /* Disc %, GST % */
+}
+
+#previewBillTable th:nth-child(12),
+#previewBillTable td:nth-child(12) {
+  width: 90px; /* Total */
+}
+
+#previewBillTable th:nth-child(13),
+#previewBillTable td:nth-child(13) {
+  width: 50px; /* Action */
+}
+#previewBillTable {
+  table-layout: fixed;
+  width: 100%;
 }
 </style>
 
@@ -192,6 +275,65 @@ h5, h6 {
     .container-flex { flex-direction: column; }
     .left-panel, .right-panel { width: 100%; }
 }
+
+.table-container {
+  height: 200px;          /* fixed height */
+  overflow-y: auto;       /* scroll when content exceeds */
+  border: 1px solid #000; /* optional border */
+}
+@media print {
+  .table-container {
+    height: auto !important;     /* expand fully for print */
+    overflow: visible !important;/* no scrollbars in print */
+  }
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;    /* keeps column widths consistent */
+}
+
+.table tbody {
+  display: table-row-group; /* default — keeps full width */
+}
+.table-container::after {
+  content: "";
+  display: block;
+  height: 200px; /* ensures visual height */
+  min-height: 100%;
+}
+</style>
+<style>
+@media print {
+  /* Expand everything, remove scrollbars */
+  .table-container {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* --- Ensure colors and backgrounds print --- */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Optional: remove print button from printed output */
+  .btn-print {
+    display: none !important;
+  }
+
+  /* Optional: tighten spacing for print clarity */
+  body {
+    background: white !important;
+  }
+
+  /* Optional: ensure tables look solid in print */
+  table, th, td {
+    border-color: #534e4e !important;
+  }
+}
+
 </style>
 
 @php
@@ -418,12 +560,11 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
         
         <!-- Section Header -->
-        <div style="text-align: center; background-color: #000; color: #fff; padding: 2px 0; margin-bottom: 3px; font-size: 8pt;">
-            <strong>New Purchase</strong>
-        </div>
+        
 
         <!-- Compact Table -->
-        <table class="invoice-table new-purchase-table" id="previewBillTable" style="width: 100%; border-collapse: collapse; font-size: 7pt; margin-bottom: 4px;">
+      <div class="table-container mb-2">
+  <table class="table table-bordered " id="previewBillTable" style="width: 100%; border-collapse: collapse; font-size: 7pt;">
             <thead>
                 <tr style="background-color: #f2f2f2;">
                     <th style="border: 1px solid #000; padding: 2px; text-align: center;">Sl</th>
@@ -438,12 +579,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     <th style="border: 1px solid #000; padding: 2px; text-align: center;">Disc %</th>
                     <th style="border: 1px solid #000; padding: 2px; text-align: center;">GST %</th>
                     <th style="border: 1px solid #000; padding: 2px; text-align: center;">Total</th>
-                    <th style="border: 1px solid #000; padding: 2px; text-align: center;">Action</th>
+         <th class="no-print" style="border: 1px solid #000;">Action</th>
+
+
                 </tr>
             </thead>
-            <tbody></tbody>
+            <tbody ></tbody>
         </table>
-
+    </div>
         <!-- Compact Totals -->
         <div style="display: flex; justify-content: flex-end; margin-bottom: 4px;">
             <div style="width: 45%;">
@@ -492,7 +635,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         <th style="border: 1px solid #000; padding: 2px; text-align: center;">Price/gm</th>
                         <th style="border: 1px solid #000; padding: 2px; text-align: center;">Wastage %</th>
                         <th style="border: 1px solid #000; padding: 2px; text-align: center;">Amount</th>
-                        <th style="border: 1px solid #000; padding: 2px; text-align: center;">Action</th>
+             <th class="no-print" style="border: 1px solid #000; padding: 2px; text-align: center;">Action</th>
+
+
                     </tr>
                 </thead>
                  <tbody class="invoice-tbody" style="min-height: 80px;"></tbody>
@@ -578,8 +723,9 @@ document.addEventListener('DOMContentLoaded', function() {
         <div style="text-align: right; font-size: 6pt; margin-top: 3px;">Powered By <span style="color: red; font-weight: bold;">e-Suvidha</span></div>
 
         <!-- Print Button -->
-        <button class="btn-print mt-2" style="display: block; width: 100%; padding: 6px; background-color: #4CAF50; color: white; border: none; cursor: pointer; font-size: 8pt; margin-top: 6px;">🖨️ Print Invoice</button>
     </div>
+            <button class="btn-print mt-2" style="display: block; font-weight: bold; width: 100%; padding: 10px; background-color: #4CAF50; color: white; border: none; cursor: pointer; font-size: 8pt; margin-top: 6px; font-size: large!important;">🖨️ Print / Save  Invoice</button>
+
 </div>
 
 <!-- All JavaScript remains unchanged -->
@@ -673,7 +819,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <input type="hidden" id="inputBalanceDue" name="due_amount" class="form-control mb-2" placeholder="Balance Due" readonly>
 <input type="hidden" id="inputGrandTotal" name="grand_total" class="form-control mb-2" placeholder="Grand Total" readonly>
 
-    <button type="submit" class="btn btn-success mt-3">💾 Save Invoice</button>
+
 </form>
 
 
@@ -822,32 +968,32 @@ function renderBillTable() {
 
     // Collect all item IDs
     const itemIds = [];
+const billItemsData = []; // Array to store {id, qty}
 
-    billItems.forEach((i, idx) => {
-        $tbody.append(`
-            <tr data-index="${idx}">
-                <td>${idx + 1}</td>
-                <td>${i.item}</td>
-                <td>${i.itemGroup}</td>
-                <td>${i.qty}</td>
-                <td>${i.netWeight.toFixed(2)}</td>
-                <td>${i.grossWeight.toFixed(2)}</td>
-                <td>₹${i.goldRate.toFixed(2)}</td>
-                <td>₹${i.goldValue.toFixed(2)}</td>
-                <td>₹${i.makingPerGram.toFixed(2)}</td>
-                <td>${i.discountPercent}%</td>
-                <td>${GST_RATE}%</td>
-                <td>₹${i.total.toFixed(2)}</td>
-                <td><button class="btn btn-sm btn-danger remove-item">❌</button></td>
-            </tr>
-        `);
+billItems.forEach((i, idx) => {
+    $tbody.append(`
+        <tr data-index="${idx}">
+            <td>${idx + 1}</td>
+            <td>${i.item}</td>
+            <td>${i.itemGroup}</td>
+            <td>${i.qty}</td>
+            <td>${i.netWeight.toFixed(2)}</td>
+            <td>${i.grossWeight.toFixed(2)}</td>
+            <td>₹${i.goldRate.toFixed(2)}</td>
+            <td>₹${i.goldValue.toFixed(2)}</td>
+            <td>₹${i.makingPerGram.toFixed(2)}</td>
+            <td>${i.discountPercent}%</td>
+            <td>${GST_RATE}%</td>
+            <td>₹${i.total.toFixed(2)}</td>
+            <td><button class="btn btn-sm btn-danger remove-item">❌</button></td>
+        </tr>
+    `);
 
-        // Add item ID to the array
-        itemIds.push(i.id);
-    });
-
+    // Push {id, qty} to billItemsData array
+    billItemsData.push({ id: i.id, qty: i.qty });
+});
     // Update hidden/readonly input with comma-separated IDs
-    $('#inputItemId').val(itemIds.join(','));
+    $('#inputItemId').val(JSON.stringify(billItemsData));
 }
 
 
@@ -1081,39 +1227,6 @@ $('#customer').on('change', function() {
 
 
 
-$('#invoiceForm').on('submit', function (e) {
-    // --- CUSTOMER & BILL INFO ---
-   $('#customer').on('change', function() {
-    let customerId = $(this).val() || '';
-    $('#inputCustomerId').val(customerId);
-});
-    $('#inputBillName').val($('#previewCustomerName').text().trim());
-    $('#inputDueDate').val($('#previewDueDate').text().trim());
-
-    // --- BILL ITEMS (New Purchase) ---
-    $('#inputItems').val(JSON.stringify(billItems || []));
-
-    // --- EXCHANGE ITEMS ---
-    let exchangeData = exchangeItems && exchangeItems.length > 0 ? exchangeItems : [];
-
-    // --- OTHER CHARGES + EXCHANGE INFO ---
-    let otherCharges = {
-        name: $('#otherTaxName').val()?.trim() || '-',
-        percent: parseFloat($('#otherTaxPercent').val()) || 0,
-        amount: parseFloat($('#previewOtherTaxAmount').text()) || 0,
-        exchange: exchangeData
-    };
-    $('#inputOtherCharges').val(JSON.stringify(otherCharges));
-
-    // --- PAYMENT & TOTALS ---
-    $('#inputPaidAmount').val(parseFloat($('#customerPayment').val()) || 0);
-    $('#inputDueAmount').val(parseFloat($('#previewBalanceDue').text()) || 0);
-    $('#inputGrandTotal').val(parseFloat($('#previewGrandTotal').text()) || 0);
-
-    // ✅ Let form submit normally to controller
-});
-
-
 
 
 
@@ -1123,63 +1236,112 @@ $('#invoiceForm').on('submit', function (e) {
 
 </script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const printBtn = document.querySelector('.btn-print');
-    const invoicePreview = document.getElementById('invoicePreview');
+$(document).ready(function() {
 
-    printBtn.addEventListener('click', function() {
+    // Click on Print button triggers form submission
+    $('.btn-print').on('click', function() {
+        $('#invoiceForm').submit();
+    });
+
+    $('#invoiceForm').on('submit', function(e) {
+        e.preventDefault(); // prevent normal submit
+
+        // --- CUSTOMER & BILL INFO ---
+        $('#inputBillName').val($('#previewCustomerName').text().trim());
+        $('#inputDueDate').val($('#previewDueDate').text().trim());
+        $('#inputCustomerId').val($('#customer').val() || '');
+
+        // --- BILL ITEMS (New Purchase) ---
+        let safeBillItems = typeof billItems !== 'undefined' ? billItems : [];
+        $('#inputItems').val(JSON.stringify(safeBillItems));
+
+        // --- EXCHANGE ITEMS ---
+        let safeExchangeItems = (typeof exchangeItems !== 'undefined' && exchangeItems.length > 0) ? exchangeItems : [];
+
+        // --- OTHER CHARGES + EXCHANGE INFO ---
+        let otherCharges = {
+            name: $('#otherTaxName').val()?.trim() || '-',
+            percent: parseFloat($('#otherTaxPercent').val()) || 0,
+            amount: parseFloat($('#previewOtherTaxAmount').text()) || 0,
+            exchange: safeExchangeItems
+        };
+        $('#inputOtherCharges').val(JSON.stringify(otherCharges));
+
+        // --- PAYMENT & TOTALS ---
+        $('#inputPaidAmount').val(parseFloat($('#customerPayment').val()) || 0);
+        $('#inputDueAmount').val(parseFloat($('#previewBalanceDue').text()) || 0);
+        $('#inputGrandTotal').val(parseFloat($('#previewGrandTotal').text()) || 0);
+
+        // --- Submit form via AJAX ---
+        let form = $(this);
+        $.ajax({
+            url: form.attr('action'),
+            method: form.attr('method'),
+            data: form.serialize(),
+            success: function(response) {
+                // ✅ Show alert first
+                alert('Invoice saved successfully!');
+
+                // Then trigger print
+                printInvoice();
+            },
+            error: function(err) {
+                alert('Form submission failed!');
+                console.error(err);
+            }
+        });
+    });
+
+    // --- Print Function ---
+    function printInvoice() {
+        const invoicePreview = document.getElementById('invoicePreview');
         if (!invoicePreview) {
             alert("Invoice content not found!");
             return;
         }
 
-        const printWindow = window.open('', '_blank');
-        printWindow.document.write('<html><head><title>Invoice</title>');
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'absolute';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        document.body.appendChild(iframe);
 
-        // Copy existing stylesheets
+        const doc = iframe.contentWindow.document;
+        doc.open();
+        doc.write('<!DOCTYPE html><html><head><title>Invoice</title>');
+
+        // Copy styles
         Array.from(document.querySelectorAll('link[rel="stylesheet"], style')).forEach(styleEl => {
-            printWindow.document.write(styleEl.outerHTML);
+            doc.write(styleEl.outerHTML);
         });
 
-        // Add print-specific styles to force A4 height
-        printWindow.document.write(`
-            <style>
-                @page {
-                    size: A4;
-                    margin: 20mm;
-                }
-                body {
-                    margin: 0;
-                    padding: 0;
-                    font-family: Arial, sans-serif;
-                }
-                #invoicePreview {
-                    min-height: 297mm; /* A4 height */
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: flex-start;
-                }
-                table {
-                    page-break-inside: auto;
-                }
-                tr { page-break-inside: avoid; page-break-after: auto; }
-            </style>
-        `);
+        // Optional print-specific styles
+        doc.write(`<style>
+            @page { size: A4; margin: 20mm; }
+            body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+            #invoicePreview { display: flex; flex-direction: column; justify-content: flex-start; }
+            table { page-break-inside: auto; }
+            tr { page-break-inside: avoid; page-break-after: auto; }
+        </style>`);
 
-        printWindow.document.write('</head><body>');
-        printWindow.document.write(invoicePreview.outerHTML);
-        printWindow.document.write('</body></html>');
+        doc.write('</head><body>');
+        doc.write(invoicePreview.outerHTML);
+        doc.write('</body></html>');
+        doc.close();
 
-        printWindow.document.close();
-        printWindow.focus();
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
 
         setTimeout(() => {
-            printWindow.print();
-            printWindow.close();
-        }, 500);
-    });
+            document.body.removeChild(iframe);
+        }, 1000);
+    }
+
 });
 </script>
+
+
 
 
 

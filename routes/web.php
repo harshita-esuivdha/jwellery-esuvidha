@@ -90,7 +90,7 @@ Route::put('items/{id}', [ItemController::class, 'update'])->name('items.update'
 });
 Route::prefix('billing')->group(function () {
   // Show create bill page
-Route::get('/billing/create', [BillController::class, 'create'])->name('billing.create');
+Route::get('/billing/create/{id?}', [BillController::class, 'create'])->name('billing.create');
 
 // Show all bills page
 Route::get('/billing', [BillController::class, 'create'])->name('billing.index');
@@ -105,3 +105,7 @@ Route::get('/billing/items/{item}', [BillController::class, 'getItemRate'])->nam
 Route::get('/metal-rates/latest', [MetalRateController::class, 'latest']);
 
 Route::post('/invoices/store', [BillController::class, 'store'])->name('invoices.store');
+// routes/web.php
+Route::get('/invoices/history', [BillController::class, 'history'])->name('invoices.history');
+
+Route::delete('/invoices/{id}', [BillController::class, 'destroy'])->name('invoices.destroy');

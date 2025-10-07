@@ -150,7 +150,6 @@
     </div>
 
 </div>
-
 <!-- Customer Analysis Modal -->
 <div class="modal fade" id="customerAnalysisModal" tabindex="-1" aria-labelledby="customerAnalysisLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
@@ -202,98 +201,103 @@
 </div>
 
 <script>
-$(document).ready(function(){
-    var amountChart, qtyChart;
+var amountChart = null;
+var qtyChart = null;
 
-    $('#customerAnalysisModal').on('show.bs.modal', function (event) {
-        var button = $(event.relatedTarget); 
-        var customerId = button.data('customerid');
-        var customerName = button.data('customername');
+$('#customerAnalysisModal').on('show.bs.modal', function (event) {
+    var button = $(event.relatedTarget); 
+    var customerId = button.data('customerid');
 
-        var url = "{{ route('admin.customers.analysis', ':id') }}".replace(':id', customerId);
+    var url = "{{ route('admin.customers.analysis', ':id') }}".replace(':id', customerId);
 
-        // Reset totals
-        $('#totalBills').text('Loading...');
-        $('#totalAmount').text('Loading...');
-        $('#totalRemaining').text('Loading...');
+    // Reset totals
+    $('#totalBills').text('Loading...');
+    $('#totalAmount').text('Loading...');
+    $('#totalRemaining').text('Loading...');
 
-        // Destroy old charts
-        if(amountChart) amountChart.destroy();
-        if(qtyChart) qtyChart.destroy();
+    // Destroy old charts if they exist
+    if(amountChart) {
+        amountChart.destroy();
+        amountChart = null;
+    }
+    if(qtyChart) {
+        qtyChart.destroy();
+        qtyChart = null;
+    }
 
-        $.ajax({
-            url: url,
-            method: 'GET',
-            success: function(data){
-                $('#totalBills').text(data.total_bills);
-                $('#totalAmount').text(data.total_amount);
-                $('#totalRemaining').text(data.total_remaining);
+    $.ajax({
+        url: url,
+        method: 'GET',
+        success: function(data){
+            $('#totalBills').text(data.total_bills);
+            $('#totalAmount').text('₹' + Number(data.total_amount).toLocaleString());
+            $('#totalRemaining').text('₹' + Number(data.total_remaining).toLocaleString());
 
-                var productMap = {};
-                data.products.forEach(function(p){
-                    if(productMap[p.name]){
-                        productMap[p.name].qty += p.qty;
-                        productMap[p.name].price += p.price * p.qty;
-                    } else {
-                        productMap[p.name] = { qty: p.qty, price: p.price * p.qty };
-                    }
-                });
-
-                var labels = [], amountData = [], qtyData = [];
-                for(var key in productMap){
-                    labels.push(key);
-                    amountData.push(productMap[key].price);
-                    qtyData.push(productMap[key].qty);
+            // Aggregate products
+            var productMap = {};
+            data.products.forEach(function(p){
+                if(productMap[p.name]){
+                    productMap[p.name].qty += p.qty;
+                    productMap[p.name].price += p.price * p.qty;
+                } else {
+                    productMap[p.name] = { qty: p.qty, price: p.price * p.qty };
                 }
+            });
 
-                // Products Amount Chart
-                var ctx1 = document.getElementById('productsAmountChart').getContext('2d');
-                amountChart = new Chart(ctx1, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Amount (₹)',
-                            data: amountData,
-                            backgroundColor: 'rgba(33, 150, 243, 0.7)',
-                            borderColor: 'rgba(33, 150, 243,1)',
-                            borderWidth: 1
-                        }]
-                    },
-                    options:{
-                        animation:false,
-                        plugins:{ legend:{display:false} },
-                        scales:{ y:{ beginAtZero:true } }
-                    }
-                });
-
-                // Products Quantity Chart
-                var ctx2 = document.getElementById('productsQtyChart').getContext('2d');
-                qtyChart = new Chart(ctx2, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Quantity',
-                            data: qtyData,
-                            backgroundColor: 'rgba(76, 175, 80, 0.7)',
-                            borderColor: 'rgba(76, 175, 80,1)',
-                            borderWidth: 1
-                        }]
-                    },
-                    options:{
-                        animation:false,
-                        plugins:{ legend:{display:false} },
-                        scales:{ y:{ beginAtZero:true } }
-                    }
-                });
-
-            },
-            error:function(){
-                alert('Failed to load data.');
+            var labels = [], amountData = [], qtyData = [];
+            for(var key in productMap){
+                labels.push(key);
+                amountData.push(productMap[key].price);
+                qtyData.push(productMap[key].qty);
             }
-        });
+
+            // Products Amount Chart
+            var ctx1 = document.getElementById('productsAmountChart').getContext('2d');
+            amountChart = new Chart(ctx1, {
+                type: 'bar',
+                data: { 
+                    labels: labels, 
+                    datasets: [{
+                        label:'Amount (₹)', 
+                        data:amountData, 
+                        backgroundColor:'rgba(33,150,243,0.7)', 
+                        borderColor:'rgba(33,150,243,1)', 
+                        borderWidth:1 
+                    }] 
+                },
+                options:{ 
+                    animation:false, 
+                    plugins:{legend:{display:false}}, 
+                    scales:{y:{beginAtZero:true}} 
+                }
+            });
+
+            // Products Quantity Chart
+            var ctx2 = document.getElementById('productsQtyChart').getContext('2d');
+            qtyChart = new Chart(ctx2, {
+                type: 'bar',
+                data: { 
+                    labels: labels, 
+                    datasets: [{
+                        label:'Quantity', 
+                        data:qtyData, 
+                        backgroundColor:'rgba(76,175,80,0.7)', 
+                        borderColor:'rgba(76,175,80,1)', 
+                        borderWidth:1 
+                    }] 
+                },
+                options:{ 
+                    animation:false, 
+                    plugins:{legend:{display:false}}, 
+                    scales:{y:{beginAtZero:true}} 
+                }
+            });
+        },
+        error: function(){
+            alert('Failed to load data.');
+        }
     });
 });
 </script>
+
 @endsection

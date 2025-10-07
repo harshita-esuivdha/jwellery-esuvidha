@@ -191,10 +191,11 @@ body {
 </a>
 
 <!-- View Bill -->
-<a href="{{ route('billing.index') }}" 
-   class="{{ request()->routeIs('billing.index') ? 'active-link' : '' }}">
+<a href="{{ route('invoices.history') }}" 
+   class="{{ request()->routeIs('invoices.history') ? 'active-link' : '' }}">
    <i class="bi bi-plus-circle"></i> View Bill
 </a>
+
 
 
     @endif

@@ -23,22 +23,35 @@ public function search(Request $request)
 
 public function analysis($customerId)
 {
-    $bills = DB::table('bills')->where('customer_id', $customerId)->get();
+    // Fetch invoices for this customer
+    $invoices = DB::table('invoices')
+        ->where('customer_id', $customerId)
+        ->orderBy('id', 'desc')
+        ->get();
 
-    $totalAmount = $bills->sum('total_amount');
-    $totalRemaining = $bills->sum('remaining_amount');
-    $totalBills = $bills->count();
+    $totalBills = $invoices->count();
+    $totalAmount = $invoices->sum('grand_total');
+    $totalRemaining = $invoices->sum('due_amount');
 
     $products = [];
 
-    foreach($bills as $bill){
-        $items = json_decode($bill->product_id, true);
-        if(is_array($items)){
-            foreach($items as $item){
+    foreach ($invoices as $invoice) {
+        $itemsArray = json_decode($invoice->items, true);
+
+        if (is_array($itemsArray)) {
+            $itemIds = collect($itemsArray)->pluck('id')->toArray();
+            $items = DB::table('items')->whereIn('id', $itemIds)->get();
+
+            foreach ($items as $i) {
+                $qty = collect($itemsArray)->firstWhere('id', $i->id)['qty'] ?? 0;
+
+                // Push product info
                 $products[] = [
-                    'name' => $item['name'] ?? '',
-                    'qty' => $item['qty'] ?? 1,
-                    'price' => $item['price'] ?? 0
+                    'invoice_id' => $invoice->id,
+                    'bill_no' => $invoice->bill_no,
+                    'name' => $i->item_name,
+                    'qty' => $qty,
+                    'price' => $i->price, // unit price
                 ];
             }
         }
@@ -51,7 +64,6 @@ public function analysis($customerId)
         'products' => $products
     ]);
 }
-
 
 
 
