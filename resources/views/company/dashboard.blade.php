@@ -181,19 +181,20 @@ body {
    class="{{ request()->routeIs('items.create') ? 'active-link' : '' }}">
    <i class="bi bi-plus-circle"></i> Add Item
 </a>
+ 
 
-<h6 class="text-uppercase px-3 mt-3 mb-2" style="color:#8a6d00;">Bill</h6>
+<h6 class="text-uppercase px-3 mt-3 mb-2" style="color:#8a6d00;">Purchase</h6>
 
-<!-- Create Bill -->
-<a href="{{ route('billing.create') }}" 
-   class="{{ request()->routeIs('billing.create') ? 'active-link' : '' }}">
-   <i class="bi bi-people"></i> Create Bill
+<!-- Create Purchase -->
+<a href="{{ route('purchases.create') }}" 
+   class="{{ request()->routeIs('purchases.create') ? 'active-link' : '' }}">
+   <i class="bi bi-plus-circle"></i> New Purchase
 </a>
 
-<!-- View Bill -->
-<a href="{{ route('invoices.history') }}" 
-   class="{{ request()->routeIs('invoices.history') ? 'active-link' : '' }}">
-   <i class="bi bi-plus-circle"></i> View Bill
+<!-- View Purchases -->
+<a href="{{ route('purchases.index') }}" 
+   class="{{ request()->routeIs('purchases.index') ? 'active-link' : '' }}">
+   <i class="bi bi-eye"></i> View Purchases
 </a>
 
 

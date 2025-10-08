@@ -9,6 +9,7 @@ use App\Http\Controllers\SuperadminController;
 use App\Http\Controllers\MetalRateController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\BillController;
+use App\Http\Controllers\CreatePurchasesTable;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -112,3 +113,11 @@ Route::delete('/invoices/{id}', [BillController::class, 'destroy'])->name('invoi
 Route::get('/get-invoice/{id}', function ($id) {
     return DB::table('invoices')->where('id', $id)->first();
 });
+
+
+Route::get('/purchases', [CreatePurchasesTable::class, 'index'])->name('purchases.index');
+Route::get('/purchases/create', [CreatePurchasesTable::class, 'create'])->name('purchases.create');
+Route::post('/purchases/store', [CreatePurchasesTable::class, 'store'])->name('purchases.store');
+Route::get('/purchases/{id}/edit', [CreatePurchasesTable::class, 'edit'])->name('purchases.edit');
+Route::put('/purchases/{id}', [CreatePurchasesTable::class, 'update'])->name('purchases.update');
+Route::delete('/purchases/{id}', [CreatePurchasesTable::class, 'destroy'])->name('purchases.destroy');
