@@ -356,37 +356,70 @@ $metalRate = DB::table('metal_rates')->latest('rate_date')->first();
      LEFT PANEL 
     <div class="left-panel">
         <h5 class="mb-3">🧾 Invoice Entry</h5>
-
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
          Customer 
-        <label>Billed To:</label>
-        <select name="customer_id" id="customer" class="form-control select2 mb-3">
-            <option value="">Select Customer</option>
-            @foreach($customers as $customer)
-                <option value="{{ $customer->id }}"
-                    data-name="{{ $customer->name }}"
-                    data-phone="{{ $customer->phone }}"
-                    data-email="{{ $customer->email ?? '' }}"
-                    data-address="{{ $customer->address ?? '' }}">
-                    {{ $customer->name }} - {{ $customer->phone }}
-                </option>
-            @endforeach
-        </select>
+@php
+use Illuminate\Support\Facades\DB;
 
-<label>Payment Mode:</label>
-<select id="paymentModeSelect" class="form-control select2 mb-3">
-    <option value="">Select Payment Mode</option>
-    <option value="Cash">Cash</option>
-    <option value="Card">Card</option>
-    <option value="UPI">UPI</option>
-    <option value="Wallet">Wallet</option>
-    <option value="Exchange">Exchange</option>
+// STEP 1: Get invoice ID from query string
+$rawQuery = request()->server('QUERY_STRING');
+$invoice = null;
+
+if (is_numeric($rawQuery)) {
+    $invoice = DB::table('invoices')->where('id', intval($rawQuery))->first();
+}
+
+// STEP 2: Fetch customers
+$customers = DB::table('customers')->get();
+
+// STEP 3: Fetch all items
+$items = DB::table('items')->get();
+
+// STEP 4: Decode invoice items JSON
+$invoiceItems = $invoice ? json_decode($invoice->items, true) : [];
+$invoiceItemIds = collect($invoiceItems)->pluck('id')->toArray();
+$invoiceQtys = collect($invoiceItems)->keyBy('id')->map(fn($i) => $i['qty'])->toArray();
+@endphp
+<!-- STEP 4: Customer Dropdown -->
+<label>Billed To:</label>
+<select name="customer_id" id="customer" class="form-control select2 mb-3">
+    <option value="">Select Customer</option>
+    @foreach($customers as $customer)
+        <option value="{{ $customer->id }}"
+            data-name="{{ $customer->name }}"
+            data-phone="{{ $customer->phone }}"
+            data-email="{{ $customer->email ?? '' }}"
+            data-address="{{ $customer->address ?? '' }}"
+            {{ isset($invoice) && $invoice && $invoice->customer_id == $customer->id ? 'selected' : '' }}>
+            {{ $customer->name }} - {{ $customer->phone }}
+        </option>
+    @endforeach
 </select>
 
+<!-- STEP 5: Payment Mode -->
+<label>Payment Mode:</label>
+<select id="paymentModeSelect" name="payment_mode" class="form-control select2 mb-3">
+    <option value="">Select Payment Mode</option>
+    <option value="Cash" {{ isset($invoice) && $invoice->payment_mode == 'Cash' ? 'selected' : '' }}>Cash</option>
+    <option value="Card" {{ isset($invoice) && $invoice->payment_mode == 'Card' ? 'selected' : '' }}>Card</option>
+    <option value="UPI" {{ isset($invoice) && $invoice->payment_mode == 'UPI' ? 'selected' : '' }}>UPI</option>
+    <option value="Wallet" {{ isset($invoice) && $invoice->payment_mode == 'Wallet' ? 'selected' : '' }}>Wallet</option>
+    <option value="Exchange" {{ isset($invoice) && $invoice->payment_mode == 'Exchange' ? 'selected' : '' }}>Exchange</option>
+</select>
+
+<!-- STEP 6: Optional JS (for Select2 to show selected values) -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    $('.select2').select2();
+    $('#customer').trigger('change');
+    $('#paymentModeSelect').trigger('change');
+});
+</script>
 
 
 <!-- Include jQuery & Select2 JS if not already included -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 
 <script>
 $(document).ready(function() {
@@ -410,83 +443,186 @@ $(document).ready(function() {
 
 <div style="margin-bottom: 20px;">
     <label for="dueDateInput">Due Date:</label>
-    <input type="date" id="dueDateInput" class="form-control" placeholder="Enter Due Date">
+    <input type="date" id="dueDateInput" class="form-control" placeholder="Enter Due Date"
+        value="{{ $invoice->due_date ?? '' }}">
 </div>
 
 <div style="margin-bottom: 20px;">
     <label for="billerNameInput">Biller Name:</label>
-    <input type="text" id="billerNameInput" class="form-control" placeholder="Enter Biller Name">
+    <input type="text" id="billerNameInput" class="form-control" placeholder="Enter Biller Name"
+        value="{{ $invoice->bill_name ?? '' }}">
 </div>
 
-        <label>Item:</label>
-        <select id="itemSelect" class="form-control select2 mb-3">
-            <option value="">Select Item</option>
-            @foreach($items as $item)
-                <option 
-    value="{{ $item->id }}"
-    data-rate="{{ $item->rate ?? 0 }}"
-    data-gross_weight="{{ $item->gross_weight ?? 0 }}"
-    data-net_weight="{{ $item->net_weight ?? 0 }}"
-    data-item_group="{{ $item->item_group ?? '' }}"
-    data-metal_type="{{ $item->metal_type ?? '' }}"
-    data-making="{{ $item->making ?? 0 }}"
-    data-discount="{{ $item->discount ?? 0 }}"
->
-    {{ $item->item_name }}
-</option>
 
+   <label>Item:</label>
+<select id="itemSelect" class="form-control select2 mb-3" multiple>
+    @foreach($items as $item)
+        <option 
+            value="{{ $item->id }}"
+            data-rate="{{ $item->price ?? 0 }}"
+            data-gross_weight="{{ $item->gross_weight ?? 0 }}"
+            data-net_weight="{{ $item->net_weight ?? 0 }}"
+            data-item_group="{{ $item->item_group ?? '' }}"
+            data-metal_type="{{ $item->metal_type ?? '' }}"
+            data-making="{{ $item->making ?? 0 }}"
+            data-discount="{{ $item->discount ?? 0 }}"
+            {{ in_array($item->id, $invoiceItemIds) ? 'selected' : '' }}>
+            {{ $item->item_name }}
+        </option>
+    @endforeach
+</select>
 
+<!-- Rate & Item Details -->
+<div class="row g-2 mb-2">
+    <div class="col-md-2">
+        <label>Qty</label>
+        <input type="number" id="qty" class="form-control" value="1" min="1">
+    </div>
+    <div class="col-md-3">
+        <label>Gold Rate/gm</label>
+        <input type="number" id="rate" class="form-control" value="0" readonly>
+    </div>
+    <div class="col-md-3">
+        <label>Making/gm</label>
+        <input type="number" id="making" class="form-control" value="0">
+    </div>
+    <div class="col-md-3">
+        <label>Discount %</label>
+        <input type="number" id="discount" class="form-control" value="0">
+    </div>
+</div>
 
-            @endforeach
-        </select>
+<div class="row g-2 mb-3">
+    <div class="col-md-3"><label>Item Group</label><input type="text" id="itemGroup" class="form-control" readonly></div>
+    <div class="col-md-3"><label>Metal Type</label><input type="text" id="metalType" class="form-control" readonly></div>
+    <div class="col-md-3"><label>Gross Wt</label><input type="number" id="grossWeight" class="form-control" readonly></div>
+    <div class="col-md-3"><label>Net Wt</label><input type="number" id="netWeight" class="form-control" readonly></div>
+</div>
 
-         Rate Details 
-        <div class="row g-2 mb-2">
-            <div class="col-md-2">
-                <label>Qty</label>
-                <input type="number" id="qty" class="form-control" value="1" min="1">
-            </div>
-            <div class="col-md-3">
-                <label>Gold Rate/gm</label>
-                <input type="number" id="rate" class="form-control" value="0" readonly>
-            </div>
-            <div class="col-md-3">
-                <label>Making/gm</label>
-                <input type="number" id="making" class="form-control" value="0">
-            </div>
-            <div class="col-md-3">
-                <label>Discount %</label>
-                <input type="number" id="discount" class="form-control" value="0">
-            </div>
-        </div>
+<div class="mb-3">
+    <label class="fw-bold text-success">Total Amount</label>
+    <input type="text" id="totalAmount" class="form-control text-success fw-bold" readonly>
+</div>
 
-        <div class="row g-2 mb-3">
-            <div class="col-md-3"><label>Item Group</label><input type="text" id="itemGroup" class="form-control" readonly></div>
-            <div class="col-md-3"><label>Metal Type</label><input type="text" id="metalType" class="form-control" readonly></div>
-            <div class="col-md-3"><label>Gross Wt</label><input type="number" id="grossWeight" class="form-control" readonly></div>
-            <div class="col-md-3"><label>Net Wt</label><input type="number" id="netWeight" class="form-control" readonly></div>
-        </div>
+<button type="button" class="btn btn-primary w-100 mb-3" id="addItem">Add Item</button>
 
-        <div class="mb-3">
-            <label class="fw-bold text-success">Total Amount</label>
-            <input type="text" id="totalAmount" class="form-control text-success fw-bold" readonly>
-        </div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    $('.select2').select2();
 
-        <button type="button" class="btn btn-primary w-100 mb-3" id="addItem">Add Item</button>
+    // Pre-fill the first selected item's details
+    function fillItemDetails() {
+        const selected = $('#itemSelect option:selected').first();
+        if (!selected.length) return;
+
+        const id = selected.val();
+        $('#qty').val({!! json_encode($invoiceQtys) !!}[id] || 1);
+        $('#rate').val(selected.data('rate') || 0);
+        $('#netWeight').val(selected.data('net_weight') || 0);
+        $('#grossWeight').val(selected.data('gross_weight') || 0);
+        $('#making').val(selected.data('making') || 0);
+        $('#discount').val(selected.data('discount') || 0);
+        $('#metalType').val(selected.data('metal_type') || '');
+        $('#itemGroup').val(selected.data('item_group') || '');
+
+        updateTotal();
+    }
+
+    function updateTotal() {
+        const rate = parseFloat($('#rate').val()) || 0;
+        const qty = parseFloat($('#qty').val()) || 1;
+        const making = parseFloat($('#making').val()) || 0;
+        const discount = parseFloat($('#discount').val()) || 0;
+
+        const total = ((rate + making) * qty) * (1 - discount/100);
+        $('#totalAmount').val(total.toFixed(2));
+    }
+
+    // Fill on load
+    fillItemDetails();
+
+    // Update details when item changes
+    $('#itemSelect').on('change', fillItemDetails);
+
+    // Update total when qty/making/discount changes
+    $('#qty, #making, #discount').on('input', updateTotal);
+});
+</script>
 
          Exchange 
-     <h6>💱 Exchange Item</h6>
-<div class="mb-3">
-    <input type="text" id="exchangeItemName" class="form-control mb-2" placeholder="Item Name">
+@php
+$exchange_summary = $invoice->exchange_summary ?? '';
+$exchangeItems = [];
+
+if ($exchange_summary) {
+    // Split multiple items by " | "
+    $items = explode('|', $exchange_summary);
+
+    foreach ($items as $item) {
+        $itemName = $purity = $weight = $rate = $wastage = $total = '';
+
+        // Trim spaces
+        $item = trim($item);
+
+        // Item name (before first parenthesis)
+        preg_match('/^(.+?)\s*\(/', $item, $matches);
+        $itemName = $matches[1] ?? '';
+
+        // Purity
+        preg_match('/Purity:\s*([\d.]+)/', $item, $matches);
+        $purity = $matches[1] ?? '';
+
+        // Weight
+        preg_match('/Wt:\s*([\d.]+)/', $item, $matches);
+        $weight = $matches[1] ?? '';
+
+        // Rate
+        preg_match('/Rate:\s*₹([\d.]+)/', $item, $matches);
+        $rate = $matches[1] ?? '';
+
+        // Wastage
+        preg_match('/Wastage:\s*([\d.]+)/', $item, $matches);
+        $wastage = $matches[1] ?? '';
+
+        // Total
+        preg_match('/Total:\s*₹([\d.]+)/', $item, $matches);
+        $total = $matches[1] ?? '';
+
+        $exchangeItems[] = [
+            'itemName' => $itemName,
+            'purity' => $purity,
+            'weight' => $weight,
+            'rate' => $rate,
+            'wastage' => $wastage,
+            'total' => $total,
+        ];
+    }
+}
+@endphp
+
+<h6>💱 Exchange Items</h6>
+@foreach($exchangeItems as $index => $ex)
+<div class="mb-3 border p-2">
+    <input type="text" class="form-control mb-2" placeholder="Item Name" value="{{ $ex['itemName'] }}">
     <div class="row g-2 mb-2">
-        <div class="col"><input type="text" id="exchangePurity" class="form-control" placeholder="Purity (e.g., 22K)"></div>
-        <div class="col"><input type="number" id="exchangeWeight" class="form-control" placeholder="Weight (gm)" step="0.01"></div>
+        <div class="col">
+            <input type="text" class="form-control" placeholder="Purity (e.g., 22K)" value="{{ $ex['purity'] }}">
+        </div>
+        <div class="col">
+            <input type="number" class="form-control" placeholder="Weight (gm)" step="0.01" value="{{ $ex['weight'] }}">
+        </div>
     </div>
     <div class="row g-2">
-        <div class="col"><input type="number" id="exchangeRate" class="form-control" placeholder="Rate/gm" step="0.01"></div>
-        <div class="col"><input type="number" id="exchangeWastage" class="form-control" placeholder="Wastage %" value="0" step="0.01"></div>
+        <div class="col">
+            <input type="number" class="form-control" placeholder="Rate/gm" step="0.01" value="{{ $ex['rate'] }}">
+        </div>
+        <div class="col">
+            <input type="number" class="form-control" placeholder="Wastage %" value="{{ $ex['wastage'] }}" step="0.01">
+        </div>
     </div>
 </div>
+@endforeach
+
 
 <!-- Single input to show combined details -->
 
@@ -961,58 +1097,189 @@ function calculateItemValues() {
         total
     };
 }
-
-// Render bill table
 function renderBillTable() {
     const $tbody = $('#previewBillTable tbody').empty();
+    const billItemsData = []; // Array to store {id, qty}
 
-    // Collect all item IDs
-    const itemIds = [];
-const billItemsData = []; // Array to store {id, qty}
+    billItems.forEach((i, idx) => {
+        // Recalculate values dynamically for each item
+        const ratePerGram = i.goldRate || getRatePerGram(i.metalType, i.itemGroup);
+        const goldValue = ratePerGram * i.netWeight * i.qty;
+        const makingValue = i.makingPerGram * i.netWeight * i.qty;
+        const baseAmount = goldValue + makingValue;
+        const discountAmount = baseAmount * (i.discountPercent / 100);
+        const amountAfterDiscount = baseAmount - discountAmount;
+        const gstAmount = amountAfterDiscount * (GST_RATE / 100);
+        const total = amountAfterDiscount + gstAmount;
 
-billItems.forEach((i, idx) => {
-    $tbody.append(`
-        <tr data-index="${idx}">
-            <td>${idx + 1}</td>
-            <td>${i.item}</td>
-            <td>${i.itemGroup}</td>
-            <td>${i.qty}</td>
-            <td>${i.netWeight.toFixed(2)}</td>
-            <td>${i.grossWeight.toFixed(2)}</td>
-            <td>₹${i.goldRate.toFixed(2)}</td>
-            <td>₹${i.goldValue.toFixed(2)}</td>
-            <td>₹${i.makingPerGram.toFixed(2)}</td>
-            <td>${i.discountPercent}%</td>
-            <td>${GST_RATE}%</td>
-            <td>₹${i.total.toFixed(2)}</td>
-            <td><button class="btn btn-sm btn-danger remove-item">❌</button></td>
-        </tr>
-    `);
+        // Update the item with calculated values
+        i.goldRate = ratePerGram;
+        i.goldValue = goldValue;
+        i.makingValue = makingValue;
+        i.discountAmount = discountAmount;
+        i.gstAmount = gstAmount;
+        i.total = total;
 
-    // Push {id, qty} to billItemsData array
-    billItemsData.push({ id: i.id, qty: i.qty });
-});
-    // Update hidden/readonly input with comma-separated IDs
+        // Append row to table
+        $tbody.append(`
+            <tr data-index="${idx}">
+                <td>${idx + 1}</td>
+                <td>${i.item}</td>
+                <td>${i.itemGroup}</td>
+                <td>${i.qty}</td>
+                <td>${i.netWeight.toFixed(2)}</td>
+                <td>${i.grossWeight.toFixed(2)}</td>
+                <td>₹${i.goldRate.toFixed(2)}</td>
+                <td>₹${i.goldValue.toFixed(2)}</td>
+                <td>₹${i.makingPerGram.toFixed(2)}</td>
+                <td>${i.discountPercent}%</td>
+                <td>${GST_RATE}%</td>
+                <td>₹${i.total.toFixed(2)}</td>
+                <td><button class="btn btn-sm btn-danger remove-item">❌</button></td>
+            </tr>
+        `);
+
+        // Push {id, qty} to hidden input array
+        billItemsData.push({ id: i.id, qty: i.qty });
+    });
+
+    // Update hidden input for form submission
     $('#inputItemId').val(JSON.stringify(billItemsData));
 }
 
+// Render bill table
+$(document).ready(function() {
+    const GST_RATE = 3; // your GST rate
+    let billItems = [];
+
+    // Pre-fill billItems if invoice exists
+    @if($invoice && $invoice->items)
+        const invoiceItems = {!! $invoice->items !!}; 
+        @php
+$items = $invoice->exchangeItems ?? []; // should be an array of exchange items
+@endphp// [{"id":2,"qty":1}, ...]
+        const allItems = @json($items);
+
+        billItems = invoiceItems.map(i => {
+            const item = allItems.find(it => it.id == i.id) || {};
+            // Mark the item as selected in dropdown
+            $('#itemSelect option[value="' + i.id + '"]').prop('selected', true);
+            return {
+                id: i.id,
+                item: item.item_name || '',
+                itemGroup: item.item_group || '',
+                qty: i.qty || 1,
+                netWeight: parseFloat(item.net_weight) || 0,
+                grossWeight: parseFloat(item.gross_weight) || 0,
+                goldRate: parseFloat(item.price) || 0,
+                goldValue: (parseFloat(item.price) || 0) * (i.qty || 1),
+                makingPerGram: parseFloat(item.making) || 0,
+                discountPercent: parseFloat(item.discount) || 0,
+                total: (((parseFloat(item.price) || 0) + (parseFloat(item.making) || 0)) * (i.qty || 1)) * (1 - (parseFloat(item.discount) || 0)/100)
+            };
+        });
+        $('#itemSelect').trigger('change'); // refresh select2
+    @endif
+
+    // Render table function
+    function renderBillTable() {
+        const $tbody = $('#previewBillTable tbody').empty();
+        const billItemsData = [];
+
+        billItems.forEach((i, idx) => {
+            $tbody.append(`
+                <tr data-index="${idx}">
+                    <td>${idx + 1}</td>
+                    <td>${i.item}</td>
+                    <td>${i.itemGroup}</td>
+                    <td>${i.qty}</td>
+                    <td>${i.netWeight.toFixed(2)}</td>
+                    <td>${i.grossWeight.toFixed(2)}</td>
+                    <td>₹${i.goldRate.toFixed(2)}</td>
+                    <td>₹${i.goldValue.toFixed(2)}</td>
+                    <td>₹${i.makingPerGram.toFixed(2)}</td>
+                    <td>${i.discountPercent}%</td>
+                    <td>${GST_RATE}%</td>
+                    <td>₹${i.total.toFixed(2)}</td>
+                    <td><button class="btn btn-sm btn-danger remove-item">❌</button></td>
+                </tr>
+            `);
+
+            billItemsData.push({ id: i.id, qty: i.qty });
+        });
+
+        $('#inputItemId').val(JSON.stringify(billItemsData));
+    }
+
+    // Initial render on page load
+    renderBillTable();
+
+    // Remove item
+    $(document).on('click', '.remove-item', function() {
+        const idx = $(this).closest('tr').data('index');
+        const removedItem = billItems.splice(idx, 1)[0];
+        // Unselect removed item in dropdown
+        $('#itemSelect option[value="' + removedItem.id + '"]').prop('selected', false);
+        $('#itemSelect').trigger('change');
+        renderBillTable();
+    });
+
+    // Add new item
+$('#addItem').on('click', function() {
+    const itemData = calculateItemValues(); // <-- Use your calculation function
+    if (!itemData.id) return;
+
+    // Check if item already exists
+    const existing = billItems.find(i => i.id == itemData.id);
+
+    if (existing) {
+        existing.qty += itemData.qty;
+
+        // Recalculate values for the existing item
+        existing.goldValue = existing.goldRate * existing.qty;
+        existing.makingValue = existing.makingPerGram * existing.netWeight * existing.qty;
+        const baseAmount = existing.goldValue + existing.makingValue;
+        const discountAmount = baseAmount * (existing.discountPercent / 100);
+        const amountAfterDiscount = baseAmount - discountAmount;
+        existing.gstAmount = amountAfterDiscount * (GST_RATE / 100);
+        existing.total = amountAfterDiscount + existing.gstAmount;
+    } else {
+        billItems.push(itemData);
+
+        // Mark newly added item in dropdown as selected
+        $('#itemSelect option[value="' + itemData.id + '"]').prop('selected', true);
+        $('#itemSelect').trigger('change');
+    }
+
+    renderBillTable();
+});
+
+});
+
+
 
     // <CHANGE> Render exchange table with wastage calculation
-  function renderExchangeTable() {
+      // Function to render exchange table (your existing code)
+
+
+
+
+function renderExchangeTable() {
     const $tbody = $('#previewExchangeTable tbody').empty();
 
     if (exchangeItems.length === 0) {
-        $('#exchangeContainer').hide(); // hide table if no items
-        $('#exchangeSummary').val(''); // clear input
+        $('#exchangeContainer').hide();
+        $('#exchangeSummary').val('');
         return;
     }
 
-    $('#exchangeContainer').show(); // show table if items exist
+    $('#exchangeContainer').show();
 
-    // Array to store all exchange item details
     const exchangeDetails = [];
 
     exchangeItems.forEach((i, idx) => {
+        i.total = calculateTotal(i.weight, i.rate, i.wastagePercent);
+
         $tbody.append(`
             <tr data-index="${idx}">
                 <td>${idx + 1}</td>
@@ -1026,16 +1293,48 @@ billItems.forEach((i, idx) => {
             </tr>
         `);
 
-        // Prepare a string representation of this item
         const detailString = `${i.name} (Purity: ${i.purity}, Wt: ${i.weight.toFixed(2)}gm, Rate: ₹${i.rate.toFixed(2)}, Wastage: ${i.wastagePercent}%, Total: ₹${i.total.toFixed(2)})`;
-
-        // Add to array
         exchangeDetails.push(detailString);
     });
 
-    // Join all items with semicolon or comma
     $('#exchangeSummary').val(exchangeDetails.join(' | '));
 }
+
+// Initial render on page load
+$(document).ready(function() {
+    renderExchangeTable();
+});
+    // Function to calculate total for an item
+    function calculateTotal(weight, rate, wastagePercent) {
+        const goldValue = weight * rate;
+        const wastageValue = goldValue * (wastagePercent / 100);
+        return goldValue + wastageValue;
+    }
+
+    // On page load, pre-fill exchangeItems from PHP variables
+// On page load, pre-fill exchangeItems from PHP variables
+$(document).ready(function() {
+    // Pass the PHP array to JS
+    let phpExchangeItems = @json($exchangeItems);
+
+    phpExchangeItems.forEach(function(item) {
+        exchangeItems.push({
+            name: item.itemName,
+            purity: item.purity,
+            weight: parseFloat(item.weight) || 0,
+            rate: parseFloat(item.rate) || 0,
+            wastagePercent: parseFloat(item.wastage) || 0,
+            total: calculateTotal(
+                parseFloat(item.weight) || 0,
+                parseFloat(item.rate) || 0,
+                parseFloat(item.wastage) || 0
+            )
+        });
+    });
+
+    // Render the table
+    renderExchangeTable();
+});
 
 
     // <CHANGE> Complete totals calculation with all fields
@@ -1119,22 +1418,35 @@ $('#otherTaxPercent, #otherTaxName').on('input', calculateTotals);
 
     // <CHANGE> Customer selection handler
  // When customer is selected, fetch ID and update hidden input + preview
-$('#customer').on('change', function() {
-    const selected = $(this).find('option:selected');
-    const customerId = selected.val(); // ✅ Fetch customer ID
-    const name = selected.data('name') || '-';
-    const phone = selected.data('phone') || '-';
-    const email = selected.data('email') || '-';
-    const address = selected.data('address') || '-';
+$(document).ready(function() {
 
-    // Set hidden input for form submission
-    $('#inputCustomerId').val(customerId);
+    // Function to update preview and hidden inputs
+    function updateCustomerDetails() {
+        const selected = $('#customer').find('option:selected');
+        const customerId = selected.val(); // ✅ Fetch customer ID
+        const name = selected.data('name') || '-';
+        const phone = selected.data('phone') || '-';
+        const email = selected.data('email') || '-';
+        const address = selected.data('address') || '-';
 
-    // Update invoice preview section live
-    $('#previewCustomerName').text(name);
-    $('#previewCustomerPhone').text(phone);
-    $('#previewCustomerEmail').text(email);
-    $('#previewCustomerAddress').text(address);
+        // Set hidden input for form submission
+        $('#inputCustomerId').val(customerId);
+
+        // Update invoice preview section live
+        $('#previewCustomerName').text(name);
+        $('#previewCustomerPhone').text(phone);
+        $('#previewCustomerEmail').text(email);
+        $('#previewCustomerAddress').text(address);
+    }
+
+    // ✅ Run when customer changes manually
+    $('#customer').on('change', updateCustomerDetails);
+
+    // ✅ Also run automatically if a customer is already selected (e.g., edit mode)
+    if ($('#customer').val()) {
+        updateCustomerDetails();
+    }
+
 });
 
 

@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
 
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\CustomerController;
@@ -88,7 +89,7 @@ Route::put('items/{id}', [ItemController::class, 'update'])->name('items.update'
 
     Route::delete('/delete/{id}', [ItemController::class, 'destroy'])->name('items.destroy'); // Delete
 });
-Route::prefix('billing')->group(function () {
+
   // Show create bill page
 Route::get('/billing/create/{id?}', [BillController::class, 'create'])->name('billing.create');
 
@@ -101,7 +102,6 @@ Route::get('/billing/items/{item}', [BillController::class, 'getItemRate'])->nam
 // Store bill
 
 
-});
 Route::get('/metal-rates/latest', [MetalRateController::class, 'latest']);
 
 Route::post('/invoices/store', [BillController::class, 'store'])->name('invoices.store');
@@ -109,3 +109,6 @@ Route::post('/invoices/store', [BillController::class, 'store'])->name('invoices
 Route::get('/invoices/history', [BillController::class, 'history'])->name('invoices.history');
 
 Route::delete('/invoices/{id}', [BillController::class, 'destroy'])->name('invoices.destroy');
+Route::get('/get-invoice/{id}', function ($id) {
+    return DB::table('invoices')->where('id', $id)->first();
+});
