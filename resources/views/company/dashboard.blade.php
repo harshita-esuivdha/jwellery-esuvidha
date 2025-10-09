@@ -182,7 +182,15 @@ body {
    <i class="bi bi-plus-circle"></i> Add Item
 </a>
  
+<h6 class="text-uppercase px-3 mt-3 mb-2" style="color:#8a6d00;">Bill</h6>
+<a href="{{ route('billing.create') }}" 
+   class="{{ request()->routeIs('billing.create') ? 'active-link' : '' }}">
+   <i class="bi bi-people"></i> Create Bill</a>
+   <a href="{{ route('invoices.history') }}" 
+   class="{{ request()->routeIs('invoices.history') ? 'active-link' : '' }}">
+   <i class="bi bi-plus-circle"></i> View Bill</a>
 
+   
 <h6 class="text-uppercase px-3 mt-3 mb-2" style="color:#8a6d00;">Purchase</h6>
 
 <!-- Create Purchase -->

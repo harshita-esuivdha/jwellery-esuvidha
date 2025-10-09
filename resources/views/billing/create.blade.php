@@ -634,16 +634,40 @@ if ($exchange_summary) {
 
 <!-- Single input to show combined details -->
 
+@php
+// Get invoice ID from URL, e.g. ?id=24 or ?24
+// Laravel expects key=value, so if URL is ?id=24:
+$invoiceId = request()->query('id'); // fetch ?id=24
+
+// If your URL is just ?24 (no key), you can do:
+if(!$invoiceId){
+    $query = request()->getQueryString(); // returns "24"
+    $invoiceId = $query ? (int)$query : null;
+}
+
+$invoice = $invoiceId ? DB::table('invoices')->where('id', $invoiceId)->first() : null;
+
+$otherTaxName = '';
+$otherTaxAmount = 0;
+
+if($invoice && $invoice->other_charges){
+    $parts = explode(' - ₹ ', $invoice->other_charges);
+    $otherTaxName = $parts[0] ?? '';
+    $otherTaxAmount = isset($parts[1]) ? (float) str_replace(',', '', $parts[1]) : 0;
+}
+$paidAmount = $invoice ? (float)$invoice->paid_amount : 0;
+@endphp
 
 
 
-     <h6 class="mt-4">🧾 Other Tax</h6>
+
+    <h6 class="mt-4">🧾 Other Tax</h6>
 <div class="row g-2 mb-3">
     <div class="col">
-        <input type="text" id="otherTaxName" class="form-control" placeholder="Tax Name">
+        <input type="text" id="otherTaxName" class="form-control" placeholder="Tax Name" value="{{ old('otherTaxName', $otherTaxName) }}">
     </div>
     <div class="col">
-        <input type="number" id="otherTaxPercent" class="form-control" placeholder="Tax %" step="0.01">
+        <input type="number" id="otherTaxPercent" class="form-control" placeholder="Tax %" step="0.01" value="{{ old('otherTaxPercent', $otherTaxAmount) }}">
     </div>
 </div>
 
@@ -651,8 +675,13 @@ if ($exchange_summary) {
 
 
   
-        <h6>💰 Customer Payment</h6>
-        <input type="number" id="customerPayment" class="form-control" placeholder="Amount Paid" min="0">
+      <h6>💰 Customer Payment</h6>
+<input type="number" 
+       id="customerPayment" 
+       class="form-control" 
+       placeholder="Amount Paid" 
+       min="0" 
+       value="{{ old('customerPayment', $paidAmount) }}">
 
 
 <script>
@@ -874,19 +903,31 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- All JavaScript remains unchanged -->
 <script>
+document.addEventListener('DOMContentLoaded', function() {
     const dueDateInput = document.getElementById('dueDateInput');
     const billerNameInput = document.getElementById('billerNameInput');
     const previewDueDate = document.getElementById('previewDueDate');
     const previewSalesman = document.getElementById('previewSalesman');
 
-    dueDateInput.addEventListener('input', function() {
-        previewDueDate.textContent = this.value || '-';
-    });
+    // Set initial values on page load
+    if (dueDateInput) previewDueDate.textContent = dueDateInput.value || '-';
+    if (billerNameInput) previewSalesman.textContent = billerNameInput.value || '{{ auth()->user()->name ?? "-" }}';
 
-    billerNameInput.addEventListener('input', function() {
-        previewSalesman.textContent = this.value || '{{ auth()->user()->name ?? "-" }}';
-    });
+    // Update on input
+    if (dueDateInput) {
+        dueDateInput.addEventListener('input', function() {
+            previewDueDate.textContent = this.value || '-';
+        });
+    }
+
+    if (billerNameInput) {
+        billerNameInput.addEventListener('input', function() {
+            previewSalesman.textContent = this.value || '{{ auth()->user()->name ?? "-" }}';
+        });
+    }
+});
 </script>
+
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -1051,37 +1092,41 @@ function calculateItemValues() {
 
     const itemId = $selected.val() || ''; // Item ID
     const itemName = $selected.text().trim(); // Item name
-    const itemGroup = $('#itemGroup').val() || $selected.data('item_group') || '';
-    const metalType = $('#metalType').val() || $selected.data('metal_type') || '';
-    const netWeight = parseFloat($('#netWeight').val()) || parseFloat($selected.data('net_weight')) || 0;
-    const grossWeight = parseFloat($('#grossWeight').val()) || parseFloat($selected.data('gross_weight')) || 0;
+   const itemGroup = $('#itemGroup').val() || $selected.data('item_group') || '';
+const metalType = $('#metalType').val() || $selected.data('metal_type') || '';
+const netWeight = parseFloat($('#netWeight').val()) || parseFloat($selected.data('net_weight')) || 0;
+const grossWeight = parseFloat($('#grossWeight').val()) || parseFloat($selected.data('gross_weight')) || 0;
+
+  
     const qty = parseFloat($('#qty').val()) || 1;
     const makingPerGram = parseFloat($('#making').val()) || 0;
     const discountPercent = parseFloat($('#discount').val()) || 0;
 
     // Calculate rate per gram based on metal type and purity
-    const ratePerGram = getRatePerGram(metalType, itemGroup);
+const ratePerGram = getRatePerGram(metalType, itemGroup) || 0;  // Ensure it’s numeric
 
-    // Gold value = rate per gram × net weight × quantity
-    const goldValue = ratePerGram * netWeight * qty;
+// Gold value = rate per gram × net weight × quantity
+const goldValue = (ratePerGram * netWeight * qty) || 0;
 
-    // Making charges = making per gram × net weight × quantity
-    const makingValue = makingPerGram * netWeight * qty;
+// Making charges = making per gram × net weight × quantity
+const makingValue = (makingPerGram * netWeight * qty) || 0;
 
-    // Base amount before discount
-    const baseAmount = goldValue + makingValue;
+// Base amount before discount
+const baseAmount = goldValue + makingValue;
 
-    // Discount amount
-    const discountAmount = baseAmount * (discountPercent / 100);
+// Discount amount
+const discountAmount = baseAmount * (discountPercent / 100);
 
-    // Amount after discount
-    const amountAfterDiscount = baseAmount - discountAmount;
+// Amount after discount
+const amountAfterDiscount = baseAmount - discountAmount;
 
-    // GST calculation
-    const gstAmount = amountAfterDiscount * (GST_RATE / 100);
+// ✅ Fix: use a global constant or fallback if GST_RATE undefined
+const gstRate = typeof GST_RATE !== 'undefined' ? GST_RATE : 3;  // fallback 3%
+const gstAmount = amountAfterDiscount * (gstRate / 100);
 
-    // Final total
-    const total = amountAfterDiscount + gstAmount;
+// Final total
+const total = amountAfterDiscount + gstAmount;
+
 
     // Update UI fields if needed
     $('#rate').val(ratePerGram.toFixed(2));
@@ -1105,6 +1150,8 @@ function calculateItemValues() {
         total
     };
 }
+
+
 function renderBillTable() {
     const $tbody = $('#previewBillTable tbody').empty();
     const billItemsData = []; // Array to store {id, qty}
@@ -1148,46 +1195,48 @@ function renderBillTable() {
         `);
 
         // Push {id, qty} to hidden input array
-        billItemsData.push({ id: i.id, qty: i.qty });
+         billItemsData.push({ id: i.id, qty: i.qty });
     });
 
     // Update hidden input for form submission
     $('#inputItemId').val(JSON.stringify(billItemsData));
 }
-
 // Render bill table
 $(document).ready(function() {
     const GST_RATE = 3; // your GST rate
     let billItems = [];
 
     // Pre-fill billItems if invoice exists
-    @if($invoice && $invoice->items)
-        const invoiceItems = {!! $invoice->items !!}; 
-        @php
-$items = $invoice->exchangeItems ?? []; // should be an array of exchange items
-@endphp// [{"id":2,"qty":1}, ...]
-        const allItems = @json($items);
+@if($invoice && $invoice->items)
 
-        billItems = invoiceItems.map(i => {
-            const item = allItems.find(it => it.id == i.id) || {};
-            // Mark the item as selected in dropdown
-            $('#itemSelect option[value="' + i.id + '"]').prop('selected', true);
-            return {
-                id: i.id,
-                item: item.item_name || '',
-                itemGroup: item.item_group || '',
-                qty: i.qty || 1,
-                netWeight: parseFloat(item.net_weight) || 0,
-                grossWeight: parseFloat(item.gross_weight) || 0,
-                goldRate: parseFloat(item.price) || 0,
-                goldValue: (parseFloat(item.price) || 0) * (i.qty || 1),
-                makingPerGram: parseFloat(item.making) || 0,
-                discountPercent: parseFloat(item.discount) || 0,
-                total: (((parseFloat(item.price) || 0) + (parseFloat(item.making) || 0)) * (i.qty || 1)) * (1 - (parseFloat(item.discount) || 0)/100)
-            };
-        });
-        $('#itemSelect').trigger('change'); // refresh select2
-    @endif
+const invoiceItems = @json(json_decode($invoice->items) ?? []); 
+const allItems = @json($invoice->exchangeItems ?? []); // array of exchange items
+
+billItems = invoiceItems.map(i => {
+    const item = allItems.find(it => parseInt(it.id) === parseInt(i.id)) || {};
+
+    // Mark the item as selected in dropdown
+    $('#itemSelect option[value="' + i.id + '"]').prop('selected', true);
+
+    return {
+        id: i.id,
+        item: item.item_name || '',
+        itemGroup: item.item_group || '',
+        qty: parseFloat(i.qty) || 1,
+        netWeight: parseFloat(item.net_weight) || 0,
+        grossWeight: parseFloat(item.gross_weight) || 0,
+        goldRate: parseFloat(item.price) || 0,
+        goldValue: (parseFloat(item.price) || 0) * (parseFloat(i.qty) || 1),
+        makingPerGram: parseFloat(item.making) || 0,
+        discountPercent: parseFloat(item.discount) || 0,
+        total: (((parseFloat(item.price) || 0) + (parseFloat(item.making) || 0)) * (parseFloat(i.qty) || 1)) * (1 - (parseFloat(item.discount) || 0)/100)
+    };
+});
+
+$('#itemSelect').trigger('change');
+
+@endif
+
 
     // Render table function
     function renderBillTable() {
@@ -1231,7 +1280,21 @@ $items = $invoice->exchangeItems ?? []; // should be an array of exchange items
         $('#itemSelect').trigger('change');
         renderBillTable();
     });
+$('#itemSelect').on('change', function() {
+    const itemId = $(this).val();
+    const item = allItems.find(i => parseInt(i.id) === parseInt(itemId)) || {};
 
+    $('#itemGroup').val(item.item_group || '');
+    $('#metalType').val(item.metal_type || '');
+    $('#netWeight').val(item.net_weight || 0);
+    $('#grossWeight').val(item.gross_weight || 0);
+    $('#goldRate').val(item.price || 0);
+    $('#makingPerGram').val(item.making || 0);
+    $('#discountPercent').val(item.discount || 0);
+
+    // Optional: reset quantity to 1
+    $('#qty').val(1);
+});
     // Add new item
 $('#addItem').on('click', function() {
     const itemData = calculateItemValues(); // <-- Use your calculation function
@@ -1269,26 +1332,18 @@ $('#addItem').on('click', function() {
     // <CHANGE> Render exchange table with wastage calculation
       // Function to render exchange table (your existing code)
 
-let exchangeItems = []; // Global array
-
-// Function to calculate total
-function calculateTotal(weight, rate, wastagePercent) {
-    const goldValue = weight * rate;
-    const wastageValue = goldValue * (wastagePercent / 100);
-    return goldValue + wastageValue;
-}
 
 // Function to render the table
 function renderExchangeTable() {
     const $tbody = $('#previewExchangeTable tbody').empty();
 
     if (exchangeItems.length === 0) {
-        $('#exchangeContainer').hide();
+       $('#exchangeContainer').hide();
         $('#exchangeSummary').val('');
         return;
     }
 
-    $('#exchangeContainer').show();
+     $('#exchangeContainer').show();
 
     const exchangeDetails = [];
 
@@ -1315,56 +1370,44 @@ function renderExchangeTable() {
 }
 
 // Remove item
-$(document).on('click', '.remove-exchange', function() {
-    const idx = $(this).closest('tr').data('index');
-    if (idx !== undefined) {
-        exchangeItems.splice(idx, 1);
-        renderExchangeTable();
-    }
-});
-
-// Add new item
-$('#addExchangeItem').on('click', function() {
-    const name = $('#exchangeItemName').val().trim();
-    const purity = $('#exchangePurity').val().trim();
-    const weight = parseFloat($('#exchangeWeight').val()) || 0;
-    const rate = parseFloat($('#exchangeRate').val()) || 0;
-    const wastagePercent = parseFloat($('#exchangeWastage').val()) || 0;
-
-    if (!name || weight <= 0) return;
-
-    // Check if the item already exists
-    const existing = exchangeItems.find(i => i.name === name);
-    if (existing) {
-        existing.weight += weight;
-        existing.rate = rate; // optional: update rate
-        existing.wastagePercent = wastagePercent; // optional: update wastage
-    } else {
-        exchangeItems.push({ name, purity, weight, rate, wastagePercent });
-    }
-
-    // Clear input fields
-    $('#exchangeItemName, #exchangePurity, #exchangeWeight, #exchangeRate, #exchangeWastage').val('');
-
+$(document).ready(function() {
     renderExchangeTable();
 });
+    // Function to calculate total for an item
+    function calculateTotal(weight, rate, wastagePercent) {
+        const goldValue = weight * rate;
+        const wastageValue = goldValue * (wastagePercent / 100);
+        return goldValue + wastageValue;
+    }
 
-// Pre-fill from PHP after DOM is ready
+    // On page load, pre-fill exchangeItems from PHP variables
+// On page load, pre-fill exchangeItems from PHP variables
 $(document).ready(function() {
-    const phpExchangeItems = @json($exchangeItems || []);
+    // Pass the PHP array to JS
+    let phpExchangeItems = @json($exchangeItems);
 
-    phpExchangeItems.forEach(item => {
+    phpExchangeItems.forEach(function(item) {
         exchangeItems.push({
             name: item.itemName,
             purity: item.purity,
             weight: parseFloat(item.weight) || 0,
             rate: parseFloat(item.rate) || 0,
-            wastagePercent: parseFloat(item.wastage) || 0
+            wastagePercent: parseFloat(item.wastage) || 0,
+            total: calculateTotal(
+                parseFloat(item.weight) || 0,
+                parseFloat(item.rate) || 0,
+                parseFloat(item.wastage) || 0
+            )
         });
     });
 
+    // Render the table
     renderExchangeTable();
 });
+
+
+
+// Pre-fill from PHP after DOM is ready
 
 
 
@@ -1417,7 +1460,15 @@ $(document).ready(function() {
     // Convert amount to words
     $('#amountInWords').text(numberToWords(grandTotal));
 }
+$(document).ready(function() {
+    // Call the function on page load
+    calculateTotals();
 
+    // Optional: Recalculate when inputs change
+    $('#otherTaxPercent, #otherTaxName, #customerPayment').on('input', function() {
+        calculateTotals();
+    });
+});
 // Recalculate totals whenever Other Tax changes
 $('#otherTaxPercent, #otherTaxName').on('input', calculateTotals);
 
