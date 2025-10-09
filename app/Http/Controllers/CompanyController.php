@@ -15,19 +15,71 @@ class CompanyController extends Controller
    
 public function subDashboard()
 {
-  $companyId = session('company_id'); // assuming company_id stored in session
-        $company = $companyId ? Company::find($companyId) : null;
-  if (!$company) {
-        return redirect()->route('company.login')->with('error', 'comapny not found.');
+    $companyId = session('company_id');
+    $company = $companyId ? Company::find($companyId) : null;
+
+    if (!$company) {
+        return redirect()->route('company.login')->with('error', 'Company not found.');
     }
-           // Get latest rate for pre-filling form
-        $latest = DB::table('metal_rates')->latest('rate_date')->first();
 
-        return view('sub.dashboard', [
-            'latest' => $latest
-        ]);
+    // Latest metal rate
+    $latest = DB::table('metal_rates')
+        ->where('cin', $company->id)
+        ->latest('rate_date')
+        ->first();
 
+    // Fetch invoices for this company
+    $invoices = DB::table('invoices')
+        ->where('cin_id', $company->id)
+        ->orderBy('id', 'desc')
+        ->get();
+
+    // Total revenue
+    $totalRevenue = $invoices->sum('grand_total');
+
+    // Customer-wise revenue
+    $customerAnalysis = $invoices
+        ->groupBy('customer_id')
+        ->map(function($rows) {
+            return [
+                'customer_name' => $rows->first()->bill_name,
+                'total_sales' => $rows->sum('grand_total')
+            ];
+        });
+
+    // Product-wise sales (from items column in invoices)
+    $productAnalysis = [];
+    foreach ($invoices as $invoice) {
+        $items = json_decode($invoice->items, true) ?? [];
+        foreach ($items as $item) {
+            $itemId = $item['id'] ?? null;
+            $qty = $item['qty'] ?? 0;
+            if ($itemId) {
+                if(!isset($productAnalysis[$itemId])) {
+                    $product = DB::table('items')->where('id', $itemId)->first();
+                    $productAnalysis[$itemId] = [
+                        'name' => $product->item_name ?? 'Unknown',
+                        'qty' => 0,
+                        'total_value' => 0
+                    ];
+                }
+                $productAnalysis[$itemId]['qty'] += $qty;
+                $productAnalysis[$itemId]['total_value'] += ($productAnalysis[$itemId]['total_value'] ?? 0) + ($product->price ?? 0) * $qty;
+            }
+        }
+    }
+
+    return view('sub.dashboard', [
+        'latest' => $latest,
+        'totalRevenue' => $totalRevenue,
+        'customerAnalysis' => $customerAnalysis,
+        'productAnalysis' => $productAnalysis,
+        'chartLabels' => $invoices->pluck('bill_no')->take(7)->toArray(),
+        'chartData' => $invoices->pluck('grand_total')->take(7)->map(fn($v) => (float)$v)->toArray(),
+    ]);
 }
+
+
 
 
 
