@@ -47,15 +47,18 @@ $latestRates = $latestRates ?? (object)[
                 <label>Short Name</label>
                 <input type="text" name="short_name" class="form-control" value="{{ old('short_name', $item->short_name ?? '') }}">
             </div>
-            <div class="col-md-3">
-                <label>Category</label>
-                <select name="item_group" class="form-control" required>
-                    <option value="">Select Category</option>
-                    @foreach(['Ring','Necklace','Earring','Bangle','Pendant','Bracelet','Slider','Cart'] as $cat)
-                        <option value="{{ $cat }}" {{ old('item_group', $item->item_group ?? '') == $cat ? 'selected' : '' }}>{{ $cat }}</option>
-                    @endforeach
-                </select>
-            </div>
+          <div class="col-md-3">
+    <label>Category</label>
+    <input list="categories" name="item_group" class="form-control" 
+           value="{{ old('item_group', $item->item_group ?? '') }}" required>
+    
+    <datalist id="categories">
+        @foreach(['Ring','Necklace','Earring','Bangle','Pendant','Bracelet','Slider','Cart'] as $cat)
+            <option value="{{ $cat }}"></option>
+        @endforeach
+    </datalist>
+</div>
+
             <div class="col-md-3">
                 <label>Metal Type</label>
                 <select name="metal_type" class="form-control" required>

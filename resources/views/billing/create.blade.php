@@ -302,7 +302,62 @@ h5, h6 {
   height: 200px; /* ensures visual height */
   min-height: 100%;
 }
+
+/* Added styles for action buttons */
+.btn-action-group {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.btn-action-group .btn {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 13px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-save {
+    background: #0d6efd;
+    color: #fff;
+}
+
+.btn-save:hover {
+    background: #0b5ed7;
+}
+
+.btn-delete {
+    background: #dc3545;
+    color: #fff;
+}
+
+.btn-delete:hover {
+    background: #c82333;
+}
+
+.btn-cancel {
+    background: #6c757d;
+    color: #fff;
+}
+
+.btn-cancel:hover {
+    background: #5c636a;
+}
+
+.alert-info {
+    background: #d1ecf1;
+    border: 1px solid #bee5eb;
+    color: #0c5460;
+    padding: 12px;
+    border-radius: 5px;
+    margin-bottom: 12px;
+}
 </style>
+
+
 <style>
 @media print {
   /* Expand everything, remove scrollbars */
@@ -338,43 +393,52 @@ h5, h6 {
 
 @php
 $metalRate = DB::table('metal_rates')->latest('rate_date')->first();
+$rawQuery = request()->server('QUERY_STRING');
+$invoiceId = null;
+$invoice = null;
+$isEditMode = false;
+
+if (is_numeric($rawQuery)) {
+    $invoiceId = intval($rawQuery);
+    $invoice = DB::table('invoices')->where('id', $invoiceId)->first();
+    $isEditMode = !!$invoice;
+}
 @endphp
+
 @if(session('success'))
     <div class="alert alert-success alert-dismissible fade show" role="alert">
         {{ session('success') }}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 @endif
-@if(session('success'))
-<script>
-    alert("{{ session('success') }}");
-    document.querySelector('.btn-print').click();
-</script>
+
+@if($isEditMode)
+    <div class="alert-info">
+        ✏️ <strong>Edit Mode:</strong> You are editing invoice #{{ $invoiceId }}. Click "Update" to save changes or "Delete" to remove this invoice.
+    </div>
 @endif
+
 <div class="container-flex">
 
      LEFT PANEL 
     <div class="left-panel">
-        <h5 class="mb-3">🧾 Invoice Entry</h5>
+        <h5 class="mb-3">🧾 {{ $isEditMode ? 'Edit Invoice' : 'Invoice Entry' }}</h5>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
          Customer 
 @php
 use Illuminate\Support\Facades\DB;
 
-// STEP 1: Get invoice ID from query string
-$rawQuery = request()->server('QUERY_STRING');
-$invoice = null;
-
-if (is_numeric($rawQuery)) {
-    $invoice = DB::table('invoices')->where('id', intval($rawQuery))->first();
-}
-
 // STEP 2: Fetch customers
-$customers = DB::table('customers')->get();
+$customer = DB::table('customers')
+    ->where('cid', session('login_id'))
+    ->first();
+
 
 // STEP 3: Fetch all items
-$items = DB::table('items')->get();
+$items = DB::table('items') ->where('cin', session('login_id'))
+    ->first();
+
 
 // STEP 4: Decode invoice items JSON
 $invoiceItems = $invoice ? json_decode($invoice->items, true) : [];
@@ -456,7 +520,7 @@ $(document).ready(function() {
 
    <label>Item:</label>
 <select id="itemSelect" class="form-control select2 mb-3" multiple>
-    @foreach($items as $item)
+    @foreach(($items ?? []) as $item)
         <option 
             value="{{ $item->id }}"
             data-rate="{{ $item->price ?? 0 }}"
@@ -466,11 +530,12 @@ $(document).ready(function() {
             data-metal_type="{{ $item->metal_type ?? '' }}"
             data-making="{{ $item->making ?? 0 }}"
             data-discount="{{ $item->discount ?? 0 }}"
-            {{ in_array($item->id, $invoiceItemIds) ? 'selected' : '' }}>
-            {{ $item->item_name }}
+            {{ isset($invoiceItemIds) && in_array($item->id, $invoiceItemIds ?? []) ? 'selected' : '' }}>
+            {{ $item->item_name ?? 'Unnamed Item' }}
         </option>
     @endforeach
 </select>
+
 
 <!-- Rate & Item Details -->
 <div class="row g-2 mb-2">
@@ -629,24 +694,34 @@ if ($exchange_summary) {
 </div>
 @endforeach
 
-<!-- Optional: Button to add more items dynamically -->        <button type="button" class="btn-add" id="addExchangeItem">Add Exchange Item</button>
+<!-- Added missing form fields for adding new exchange items dynamically -->
+<div class="mb-3 border p-2" id="newExchangeItemForm" style="display: none;">
+    <input type="text" id="exchangeItemName" class="form-control mb-2" placeholder="Item Name">
+    <div class="row g-2 mb-2">
+        <div class="col">
+            <input type="text" id="exchangePurity" class="form-control" placeholder="Purity (e.g., 22K)">
+        </div>
+        <div class="col">
+            <input type="number" id="exchangeWeight" class="form-control" placeholder="Weight (gm)" step="0.01">
+        </div>
+    </div>
+    <div class="row g-2">
+        <div class="col">
+            <input type="number" id="exchangeRate" class="form-control" placeholder="Rate/gm" step="0.01">
+        </div>
+        <div class="col">
+            <input type="number" id="exchangeWastage" class="form-control" placeholder="Wastage %" step="0.01">
+        </div>
+    </div>
+</div>
+
+<!-- Optional: Button to add more items dynamically -->        
+<button type="button" class="btn-add" id="addExchangeItem">Add Exchange Item</button>
 
 
 <!-- Single input to show combined details -->
 
 @php
-// Get invoice ID from URL, e.g. ?id=24 or ?24
-// Laravel expects key=value, so if URL is ?id=24:
-$invoiceId = request()->query('id'); // fetch ?id=24
-
-// If your URL is just ?24 (no key), you can do:
-if(!$invoiceId){
-    $query = request()->getQueryString(); // returns "24"
-    $invoiceId = $query ? (int)$query : null;
-}
-
-$invoice = $invoiceId ? DB::table('invoices')->where('id', $invoiceId)->first() : null;
-
 $otherTaxName = '';
 $otherTaxAmount = 0;
 
@@ -698,6 +773,18 @@ document.addEventListener('DOMContentLoaded', function() {
     paymentCopyInput.value = paymentInput.value;
 });
 </script>
+
+<!-- Added action buttons for save, update, delete, and cancel -->
+<div class="btn-action-group">
+    @if($isEditMode)
+        <button type="button" class="btn btn-save" id="updateBtn">💾 Update</button>
+        <button type="button" class="btn btn-delete" id="deleteBtn">🗑️ Delete</button>
+    @else
+        <button type="button" class="btn btn-save" id="saveBtn">💾 Save</button>
+    @endif
+    <button type="button" class="btn btn-cancel" id="cancelBtn">❌ Cancel</button>
+</div>
+
     </div>
 
      RIGHT PANEL 
@@ -713,7 +800,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             <div style="flex: 0 0 75%; display: grid; grid-template-columns: 1fr 1fr; gap: 3px 8px; font-size: 7.5pt;">
                 <div><strong>Company:</strong> <span id="previewCompanyName">{{ session('company_name') ?? 'Company Name' }}</span></div>
-                <div><strong>Bill No.:</strong> <span id="previewInvoiceNo">{{ $newBillNo }}</span></div>
+                <div><strong>Bill No.:</strong> <span id="previewInvoiceNo">{{ $invoice->bill_no ?? $newBillNo }}</span></div>
                 <div><strong>Address:</strong> {{ session('company_address') ?? $company->address ?? '' }}</div>
                 <div><strong>Bill Date:</strong> <span id="previewDate">{{ date('d-M-Y') }}</span></div>
                 <div><strong>Due Date:</strong> <span id="previewDueDate">-</span></div>
@@ -847,23 +934,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         <td style="border: 1px solid #000; padding: 2px; font-weight: bold;">Balance Due:</td>
                         <td style="border: 1px solid #000; padding: 2px; text-align: right; font-weight: bold;">₹ <span id="previewBalanceDue">0.00</span></td>
                     </tr>
-                    <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const balanceSpan = document.getElementById('previewBalanceDue');
-    const balanceInput = document.getElementById('inputBalanceDue');
-
-    function syncBalance() {
-        balanceInput.value = balanceSpan.textContent.trim();
-    }
-
-    // Initial sync
-    syncBalance();
-
-    // If the table value updates dynamically, observe changes
-    const observer = new MutationObserver(syncBalance);
-    observer.observe(balanceSpan, { childList: true, characterData: true, subtree: true });
-});
-</script>
                 </table>
             </div>
         </div>
@@ -906,25 +976,28 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener('DOMContentLoaded', function() {
     const dueDateInput = document.getElementById('dueDateInput');
     const billerNameInput = document.getElementById('billerNameInput');
+
     const previewDueDate = document.getElementById('previewDueDate');
     const previewSalesman = document.getElementById('previewSalesman');
 
-    // Set initial values on page load
-    if (dueDateInput) previewDueDate.textContent = dueDateInput.value || '-';
-    if (billerNameInput) previewSalesman.textContent = billerNameInput.value || '{{ auth()->user()->name ?? "-" }}';
+    const hiddenDueDate = document.getElementById('duedate');
+    const hiddenBillName = document.getElementById('inputBillName');
 
-    // Update on input
-    if (dueDateInput) {
-        dueDateInput.addEventListener('input', function() {
-            previewDueDate.textContent = this.value || '-';
-        });
-    }
+    // Update preview + hidden input for Due Date
+    dueDateInput.addEventListener('input', function() {
+        previewDueDate.textContent = this.value || '-';
+        hiddenDueDate.value = this.value;
+    });
 
-    if (billerNameInput) {
-        billerNameInput.addEventListener('input', function() {
-            previewSalesman.textContent = this.value || '{{ auth()->user()->name ?? "-" }}';
-        });
-    }
+    // Update preview + hidden input for Biller Name
+    billerNameInput.addEventListener('input', function() {
+        previewSalesman.textContent = this.value || '-';
+        hiddenBillName.value = this.value;
+    });
+
+    // Initialize hidden fields with default values
+    hiddenDueDate.value = dueDateInput.value;
+    hiddenBillName.value = billerNameInput.value;
 });
 </script>
 
@@ -987,6 +1060,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <form method="POST" action="{{ route('invoices.store') }}" id="invoiceForm">
     @csrf
+    <!-- Added hidden method field for PUT requests in edit mode -->
+    @if($isEditMode)
+        @method('PUT')
+        <input type="hidden" name="invoice_id" value="{{ $invoiceId }}">
+    @endif
 
     <!-- Hidden Inputs to store values -->
     
@@ -995,7 +1073,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <input type="hidden" name="due_date" id="duedate" value="">
 <input type="hidden" name="bill_name" id="inputBillName" value="">
 <input type="hidden" name="payment_mode" id="inputPaymentMode" class="form-control" placeholder="Selected Payment Mode" readonly>
-<input type="hidden" name="bill_no" value="{{ $newBillNo }}">
+<input type="hidden" name="bill_no" value="{{ $invoice->bill_no ?? $newBillNo }}">
 <input type="hidden" id="inputItemId" name="items" class="form-control" placeholder="Selected Item ID" readonly>
 
 <input type="hidden" id="inputOtherTax" name="other_charges" placeholder="Other Tax" readonly class="form-control mb-2">
@@ -1005,6 +1083,12 @@ document.addEventListener('DOMContentLoaded', function() {
 <input type="hidden" id="inputGrandTotal" name="grand_total" class="form-control mb-2" placeholder="Grand Total" readonly>
 
 
+</form>
+
+<!-- Added delete form for handling invoice deletion -->
+<form method="POST" id="deleteForm" style="display: none;">
+    @csrf
+    @method('DELETE')
 </form>
 
 
@@ -1039,24 +1123,12 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 
 
-
-
-
-
-
-
-
-
-
-
-
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
 $(function() {
     $('.select2').select2({ width: '100%' });
 
-    // <CHANGE> Metal rates from database
     const metalRates = {
         gold_24: {{ $metalRate->gold_24 ?? 0 }},
         gold_22: {{ $metalRate->gold_22 ?? 0 }},
@@ -1065,10 +1137,11 @@ $(function() {
         silver_925: {{ $metalRate->silver_925 ?? 0 }}
     };
 
-    let billItems = [], exchangeItems = [];
+    let billItems = [];
+    let exchangeItems = [];
     const GST_RATE = 3; // %
+    const allItems = @json($items ?? []); // Make allItems globally accessible
 
-    // <CHANGE> Improved rate calculation based on metal type and purity
     function getRatePerGram(metalType, itemGroup) {
         metalType = (metalType || '').toLowerCase();
         itemGroup = (itemGroup || '').toLowerCase();
@@ -1087,163 +1160,91 @@ $(function() {
     }
 
     // Calculate item values
-function calculateItemValues() {
-    const $selected = $('#itemSelect option:selected');
+    function calculateItemValues() {
+        const $selected = $('#itemSelect option:selected');
 
-    const itemId = $selected.val() || ''; // Item ID
-    const itemName = $selected.text().trim(); // Item name
-   const itemGroup = $('#itemGroup').val() || $selected.data('item_group') || '';
-const metalType = $('#metalType').val() || $selected.data('metal_type') || '';
-const netWeight = parseFloat($('#netWeight').val()) || parseFloat($selected.data('net_weight')) || 0;
-const grossWeight = parseFloat($('#grossWeight').val()) || parseFloat($selected.data('gross_weight')) || 0;
+        const itemId = $selected.val() || ''; // Item ID
+        const itemName = $selected.text().trim(); // Item name
+        const itemGroup = $('#itemGroup').val() || $selected.data('item_group') || '';
+        const metalType = $('#metalType').val() || $selected.data('metal_type') || '';
+        const netWeight = parseFloat($('#netWeight').val()) || parseFloat($selected.data('net_weight')) || 0;
+        const grossWeight = parseFloat($('#grossWeight').val()) || parseFloat($selected.data('gross_weight')) || 0;
 
-  
-    const qty = parseFloat($('#qty').val()) || 1;
-    const makingPerGram = parseFloat($('#making').val()) || 0;
-    const discountPercent = parseFloat($('#discount').val()) || 0;
+        const qty = parseFloat($('#qty').val()) || 1;
+        const makingPerGram = parseFloat($('#making').val()) || 0;
+        const discountPercent = parseFloat($('#discount').val()) || 0;
 
-    // Calculate rate per gram based on metal type and purity
-const ratePerGram = getRatePerGram(metalType, itemGroup) || 0;  // Ensure it’s numeric
+        // Calculate rate per gram based on metal type and purity
+        const ratePerGram = getRatePerGram(metalType, itemGroup) || 0;
 
-// Gold value = rate per gram × net weight × quantity
-const goldValue = (ratePerGram * netWeight * qty) || 0;
+        // Gold value = rate per gram × net weight × quantity
+        const goldValue = (ratePerGram * netWeight * qty) || 0;
 
-// Making charges = making per gram × net weight × quantity
-const makingValue = (makingPerGram * netWeight * qty) || 0;
+        // Making charges = making per gram × net weight × quantity
+        const makingValue = (makingPerGram * netWeight * qty) || 0;
 
-// Base amount before discount
-const baseAmount = goldValue + makingValue;
-
-// Discount amount
-const discountAmount = baseAmount * (discountPercent / 100);
-
-// Amount after discount
-const amountAfterDiscount = baseAmount - discountAmount;
-
-// ✅ Fix: use a global constant or fallback if GST_RATE undefined
-const gstRate = typeof GST_RATE !== 'undefined' ? GST_RATE : 3;  // fallback 3%
-const gstAmount = amountAfterDiscount * (gstRate / 100);
-
-// Final total
-const total = amountAfterDiscount + gstAmount;
-
-
-    // Update UI fields if needed
-    $('#rate').val(ratePerGram.toFixed(2));
-    $('#totalAmount').val(total.toFixed(2));
-
-    return {
-        id: itemId,
-        item: itemName,
-        itemGroup,
-        metalType,
-        qty,
-        netWeight,
-        grossWeight,
-        goldRate: ratePerGram,
-        goldValue,
-        makingPerGram,
-        makingValue,
-        discountPercent,
-        discountAmount,
-        gstAmount,
-        total
-    };
-}
-
-
-function renderBillTable() {
-    const $tbody = $('#previewBillTable tbody').empty();
-    const billItemsData = []; // Array to store {id, qty}
-
-    billItems.forEach((i, idx) => {
-        // Recalculate values dynamically for each item
-        const ratePerGram = i.goldRate || getRatePerGram(i.metalType, i.itemGroup);
-        const goldValue = ratePerGram * i.netWeight * i.qty;
-        const makingValue = i.makingPerGram * i.netWeight * i.qty;
+        // Base amount before discount
         const baseAmount = goldValue + makingValue;
-        const discountAmount = baseAmount * (i.discountPercent / 100);
+
+        // Discount amount
+        const discountAmount = baseAmount * (discountPercent / 100);
+
+        // Amount after discount
         const amountAfterDiscount = baseAmount - discountAmount;
+
+        // GST calculation
         const gstAmount = amountAfterDiscount * (GST_RATE / 100);
+
+        // Final total
         const total = amountAfterDiscount + gstAmount;
 
-        // Update the item with calculated values
-        i.goldRate = ratePerGram;
-        i.goldValue = goldValue;
-        i.makingValue = makingValue;
-        i.discountAmount = discountAmount;
-        i.gstAmount = gstAmount;
-        i.total = total;
+        // Update UI fields if needed
+        $('#rate').val(ratePerGram.toFixed(2));
+        $('#totalAmount').val(total.toFixed(2));
 
-        // Append row to table
-        $tbody.append(`
-            <tr data-index="${idx}">
-                <td>${idx + 1}</td>
-                <td>${i.item}</td>
-                <td>${i.itemGroup}</td>
-                <td>${i.qty}</td>
-                <td>${i.netWeight.toFixed(2)}</td>
-                <td>${i.grossWeight.toFixed(2)}</td>
-                <td>₹${i.goldRate.toFixed(2)}</td>
-                <td>₹${i.goldValue.toFixed(2)}</td>
-                <td>₹${i.makingPerGram.toFixed(2)}</td>
-                <td>${i.discountPercent}%</td>
-                <td>${GST_RATE}%</td>
-                <td>₹${i.total.toFixed(2)}</td>
-                <td><button class="btn btn-sm btn-danger remove-item">❌</button></td>
-            </tr>
-        `);
+        return {
+            id: itemId,
+            item: itemName,
+            itemGroup,
+            metalType,
+            qty,
+            netWeight,
+            grossWeight,
+            goldRate: ratePerGram,
+            goldValue,
+            makingPerGram,
+            makingValue,
+            discountPercent,
+            discountAmount,
+            gstAmount,
+            total
+        };
+    }
 
-        // Push {id, qty} to hidden input array
-         billItemsData.push({ id: i.id, qty: i.qty });
-    });
-
-    // Update hidden input for form submission
-    $('#inputItemId').val(JSON.stringify(billItemsData));
-}
-// Render bill table
-$(document).ready(function() {
-    const GST_RATE = 3; // your GST rate
-    let billItems = [];
-
-    // Pre-fill billItems if invoice exists
-@if($invoice && $invoice->items)
-
-const invoiceItems = @json(json_decode($invoice->items) ?? []); 
-const allItems = @json($invoice->exchangeItems ?? []); // array of exchange items
-
-billItems = invoiceItems.map(i => {
-    const item = allItems.find(it => parseInt(it.id) === parseInt(i.id)) || {};
-
-    // Mark the item as selected in dropdown
-    $('#itemSelect option[value="' + i.id + '"]').prop('selected', true);
-
-    return {
-        id: i.id,
-        item: item.item_name || '',
-        itemGroup: item.item_group || '',
-        qty: parseFloat(i.qty) || 1,
-        netWeight: parseFloat(item.net_weight) || 0,
-        grossWeight: parseFloat(item.gross_weight) || 0,
-        goldRate: parseFloat(item.price) || 0,
-        goldValue: (parseFloat(item.price) || 0) * (parseFloat(i.qty) || 1),
-        makingPerGram: parseFloat(item.making) || 0,
-        discountPercent: parseFloat(item.discount) || 0,
-        total: (((parseFloat(item.price) || 0) + (parseFloat(item.making) || 0)) * (parseFloat(i.qty) || 1)) * (1 - (parseFloat(item.discount) || 0)/100)
-    };
-});
-
-$('#itemSelect').trigger('change');
-
-@endif
-
-
-    // Render table function
     function renderBillTable() {
         const $tbody = $('#previewBillTable tbody').empty();
         const billItemsData = [];
 
         billItems.forEach((i, idx) => {
+            // Recalculate values dynamically for each item
+            const ratePerGram = i.goldRate || getRatePerGram(i.metalType, i.itemGroup);
+            const goldValue = ratePerGram * i.netWeight * i.qty;
+            const makingValue = i.makingPerGram * i.netWeight * i.qty;
+            const baseAmount = goldValue + makingValue;
+            const discountAmount = baseAmount * (i.discountPercent / 100);
+            const amountAfterDiscount = baseAmount - discountAmount;
+            const gstAmount = amountAfterDiscount * (GST_RATE / 100);
+            const total = amountAfterDiscount + gstAmount;
+
+            // Update the item with calculated values
+            i.goldRate = ratePerGram;
+            i.goldValue = goldValue;
+            i.makingValue = makingValue;
+            i.discountAmount = discountAmount;
+            i.gstAmount = gstAmount;
+            i.total = total;
+
+            // Append row to table
             $tbody.append(`
                 <tr data-index="${idx}">
                     <td>${idx + 1}</td>
@@ -1262,11 +1263,41 @@ $('#itemSelect').trigger('change');
                 </tr>
             `);
 
+            // Push {id, qty} to hidden input array
             billItemsData.push({ id: i.id, qty: i.qty });
         });
 
+        // Update hidden input for form submission
         $('#inputItemId').val(JSON.stringify(billItemsData));
     }
+
+    // Pre-fill billItems if invoice exists
+    @if($invoice && $invoice->items)
+        const invoiceItems = @json(json_decode($invoice->items) ?? []);
+
+        billItems = invoiceItems.map(i => {
+            const item = allItems.find(it => parseInt(it.id) === parseInt(i.id)) || {};
+
+            // Mark the item as selected in dropdown
+            $('#itemSelect option[value="' + i.id + '"]').prop('selected', true);
+
+            return {
+                id: i.id,
+                item: item.item_name || '',
+                itemGroup: item.item_group || '',
+                qty: parseFloat(i.qty) || 1,
+                netWeight: parseFloat(item.net_weight) || 0,
+                grossWeight: parseFloat(item.gross_weight) || 0,
+                goldRate: parseFloat(item.price) || 0,
+                goldValue: (parseFloat(item.price) || 0) * (parseFloat(i.qty) || 1),
+                makingPerGram: parseFloat(item.making) || 0,
+                discountPercent: parseFloat(item.discount) || 0,
+                total: (((parseFloat(item.price) || 0) + (parseFloat(item.making) || 0)) * (parseFloat(i.qty) || 1)) * (1 - (parseFloat(item.discount) || 0)/100)
+            };
+        });
+
+        $('#itemSelect').trigger('change');
+    @endif
 
     // Initial render on page load
     renderBillTable();
@@ -1279,274 +1310,24 @@ $('#itemSelect').trigger('change');
         $('#itemSelect option[value="' + removedItem.id + '"]').prop('selected', false);
         $('#itemSelect').trigger('change');
         renderBillTable();
-    });
-$('#itemSelect').on('change', function() {
-    const itemId = $(this).val();
-    const item = allItems.find(i => parseInt(i.id) === parseInt(itemId)) || {};
-
-    $('#itemGroup').val(item.item_group || '');
-    $('#metalType').val(item.metal_type || '');
-    $('#netWeight').val(item.net_weight || 0);
-    $('#grossWeight').val(item.gross_weight || 0);
-    $('#goldRate').val(item.price || 0);
-    $('#makingPerGram').val(item.making || 0);
-    $('#discountPercent').val(item.discount || 0);
-
-    // Optional: reset quantity to 1
-    $('#qty').val(1);
-});
-    // Add new item
-$('#addItem').on('click', function() {
-    const itemData = calculateItemValues(); // <-- Use your calculation function
-    if (!itemData.id) return;
-
-    // Check if item already exists
-    const existing = billItems.find(i => i.id == itemData.id);
-
-    if (existing) {
-        existing.qty += itemData.qty;
-
-        // Recalculate values for the existing item
-        existing.goldValue = existing.goldRate * existing.qty;
-        existing.makingValue = existing.makingPerGram * existing.netWeight * existing.qty;
-        const baseAmount = existing.goldValue + existing.makingValue;
-        const discountAmount = baseAmount * (existing.discountPercent / 100);
-        const amountAfterDiscount = baseAmount - discountAmount;
-        existing.gstAmount = amountAfterDiscount * (GST_RATE / 100);
-        existing.total = amountAfterDiscount + existing.gstAmount;
-    } else {
-        billItems.push(itemData);
-
-        // Mark newly added item in dropdown as selected
-        $('#itemSelect option[value="' + itemData.id + '"]').prop('selected', true);
-        $('#itemSelect').trigger('change');
-    }
-
-    renderBillTable();
-});
-
-});
-
-
-
-    // <CHANGE> Render exchange table with wastage calculation
-      // Function to render exchange table (your existing code)
-
-
-// Function to render the table
-function renderExchangeTable() {
-    const $tbody = $('#previewExchangeTable tbody').empty();
-
-    if (exchangeItems.length === 0) {
-       $('#exchangeContainer').hide();
-        $('#exchangeSummary').val('');
-        return;
-    }
-
-     $('#exchangeContainer').show();
-
-    const exchangeDetails = [];
-
-    exchangeItems.forEach((item, idx) => {
-        item.total = calculateTotal(item.weight, item.rate, item.wastagePercent);
-
-        $tbody.append(`
-            <tr data-index="${idx}">
-                <td>${idx + 1}</td>
-                <td>${item.name}</td>
-                <td>${item.purity}</td>
-                <td>${item.weight.toFixed(2)}</td>
-                <td>₹${item.rate.toFixed(2)}</td>
-                <td>${item.wastagePercent}%</td>
-                <td>₹${item.total.toFixed(2)}</td>
-                <td><button class="btn btn-sm btn-danger remove-exchange">❌</button></td>
-            </tr>
-        `);
-
-        exchangeDetails.push(`${item.name} (Purity: ${item.purity}, Wt: ${item.weight.toFixed(2)}gm, Rate: ₹${item.rate.toFixed(2)}, Wastage: ${item.wastagePercent}%, Total: ₹${item.total.toFixed(2)})`);
-    });
-
-    $('#exchangeSummary').val(exchangeDetails.join(' | '));
-}
-
-// Remove item
-$(document).ready(function() {
-    renderExchangeTable();
-});
-    // Function to calculate total for an item
-    function calculateTotal(weight, rate, wastagePercent) {
-        const goldValue = weight * rate;
-        const wastageValue = goldValue * (wastagePercent / 100);
-        return goldValue + wastageValue;
-    }
-
-    // On page load, pre-fill exchangeItems from PHP variables
-// On page load, pre-fill exchangeItems from PHP variables
-$(document).ready(function() {
-    // Pass the PHP array to JS
-    let phpExchangeItems = @json($exchangeItems);
-
-    phpExchangeItems.forEach(function(item) {
-        exchangeItems.push({
-            name: item.itemName,
-            purity: item.purity,
-            weight: parseFloat(item.weight) || 0,
-            rate: parseFloat(item.rate) || 0,
-            wastagePercent: parseFloat(item.wastage) || 0,
-            total: calculateTotal(
-                parseFloat(item.weight) || 0,
-                parseFloat(item.rate) || 0,
-                parseFloat(item.wastage) || 0
-            )
-        });
-    });
-
-    // Render the table
-    renderExchangeTable();
-});
-
-
-
-// Pre-fill from PHP after DOM is ready
-
-
-
-    // <CHANGE> Complete totals calculation with all fields
- function calculateTotals() {
-    let subTotal = 0, makingTotal = 0, discountTotal = 0, gstTotal = 0, totalGrossWeight = 0;
-
-    // Calculate totals from bill items
-    billItems.forEach(i => {
-        subTotal += i.goldValue;
-        makingTotal += i.makingValue;
-        discountTotal += i.discountAmount;
-        gstTotal += i.gstAmount;
-        totalGrossWeight += i.grossWeight * i.qty;
-    });
-
-    // New purchase total
-    const newPurchaseTotal = subTotal + makingTotal - discountTotal + gstTotal;
-
-    // Exchange total
-    const exchangeTotal = exchangeItems.reduce((sum, i) => sum + i.total, 0);
-
-    // Grand total before other charges
-    let grandTotal = newPurchaseTotal - exchangeTotal;
-
-    // Other Charges / Tax
-    const otherTaxPercent = parseFloat($('#otherTaxPercent').val()) || 0;
-    const otherTaxName = $('#otherTaxName').val().trim() || '-';
-    const otherTaxAmount = (grandTotal * otherTaxPercent) / 100;
-    grandTotal += otherTaxAmount;
-
-    // Customer payment
-    const paid = parseFloat($('#customerPayment').val()) || 0;
-    const balance = grandTotal - paid;
-
-    // Update preview fields
-    $('#previewSubTotal').text(subTotal.toFixed(2));
-    $('#previewMakingTotal').text(makingTotal.toFixed(2));
-    $('#previewDiscountTotal').text(discountTotal.toFixed(2));
-    $('#previewGstTotal').text(gstTotal.toFixed(2));
-    $('#previewTotalGrossWeight').text(totalGrossWeight.toFixed(2));
-    $('#previewNewPurchaseTotal').text(newPurchaseTotal.toFixed(2));
-    $('#previewExchangeTotal').text(exchangeTotal.toFixed(2));
-    $('#previewOtherTaxName').text(otherTaxName);
-    $('#previewOtherTaxAmount').text(otherTaxAmount.toFixed(2));
-    $('#previewGrandTotal').text(grandTotal.toFixed(2));
-    $('#previewCustomerPaid').text(paid.toFixed(2));
-    $('#previewBalanceDue').text(balance.toFixed(2));
-
-    // Convert amount to words
-    $('#amountInWords').text(numberToWords(grandTotal));
-}
-$(document).ready(function() {
-    // Call the function on page load
-    calculateTotals();
-
-    // Optional: Recalculate when inputs change
-    $('#otherTaxPercent, #otherTaxName, #customerPayment').on('input', function() {
         calculateTotals();
     });
-});
-// Recalculate totals whenever Other Tax changes
-$('#otherTaxPercent, #otherTaxName').on('input', calculateTotals);
-
-
-    // <CHANGE> Simple number to words converter
-    function numberToWords(num) {
-        if (num === 0) return 'Zero Rupees Only';
-        const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
-        const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-        const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
-        
-        let words = '';
-        const crore = Math.floor(num / 10000000);
-        const lakh = Math.floor((num % 10000000) / 100000);
-        const thousand = Math.floor((num % 100000) / 1000);
-        const hundred = Math.floor((num % 1000) / 100);
-        const remainder = Math.floor(num % 100);
-        
-        if (crore > 0) words += ones[crore] + ' Crore ';
-        if (lakh > 0) words += (lakh < 10 ? ones[lakh] : tens[Math.floor(lakh / 10)] + ' ' + ones[lakh % 10]) + ' Lakh ';
-        if (thousand > 0) words += (thousand < 10 ? ones[thousand] : tens[Math.floor(thousand / 10)] + ' ' + ones[thousand % 10]) + ' Thousand ';
-        if (hundred > 0) words += ones[hundred] + ' Hundred ';
-        if (remainder >= 10 && remainder < 20) words += teens[remainder - 10] + ' ';
-        else if (remainder >= 20) words += tens[Math.floor(remainder / 10)] + ' ' + ones[remainder % 10] + ' ';
-        else if (remainder > 0) words += ones[remainder] + ' ';
-        
-        return words.trim() + ' Rupees Only';
-    }
-
-    // <CHANGE> Customer selection handler
- // When customer is selected, fetch ID and update hidden input + preview
-$(document).ready(function() {
-
-    // Function to update preview and hidden inputs
-    function updateCustomerDetails() {
-        const selected = $('#customer').find('option:selected');
-        const customerId = selected.val(); // ✅ Fetch customer ID
-        const name = selected.data('name') || '-';
-        const phone = selected.data('phone') || '-';
-        const email = selected.data('email') || '-';
-        const address = selected.data('address') || '-';
-
-        // Set hidden input for form submission
-        $('#inputCustomerId').val(customerId);
-
-        // Update invoice preview section live
-        $('#previewCustomerName').text(name);
-        $('#previewCustomerPhone').text(phone);
-        $('#previewCustomerEmail').text(email);
-        $('#previewCustomerAddress').text(address);
-    }
-
-    // ✅ Run when customer changes manually
-    $('#customer').on('change', updateCustomerDetails);
-
-    // ✅ Also run automatically if a customer is already selected (e.g., edit mode)
-    if ($('#customer').val()) {
-        updateCustomerDetails();
-    }
-
-});
-
 
     // Item selection handler
-  $('#itemSelect').on('change', function() {
-    const $selected = $(this).find(':selected');
+    $('#itemSelect').on('change', function() {
+        const $selected = $(this).find(':selected');
 
-    $('#netWeight').val($selected.data('net_weight') || 0);
-    $('#grossWeight').val($selected.data('gross_weight') || 0);
-    $('#itemGroup').val($selected.data('item_group') || '');
-    $('#metalType').val($selected.data('metal_type') || '');
-    
-    // NEW: Populate making and discount fields
-    $('#making').val($selected.data('making') || 0);
-    $('#discount').val($selected.data('discount') || 0);
+        $('#netWeight').val($selected.data('net_weight') || 0);
+        $('#grossWeight').val($selected.data('gross_weight') || 0);
+        $('#itemGroup').val($selected.data('item_group') || '');
+        $('#metalType').val($selected.data('metal_type') || '');
+        
+        // Populate making and discount fields
+        $('#making').val($selected.data('making') || 0);
+        $('#discount').val($selected.data('discount') || 0);
 
-    calculateItemValues();
-});
+        calculateItemValues();
+    });
 
     // Recalculate on input changes
     $('#qty, #netWeight, #making, #discount').on('input', calculateItemValues);
@@ -1578,29 +1359,97 @@ $(document).ready(function() {
         calculateTotals();
     });
 
-    // <CHANGE> Add exchange item with wastage calculation
-    $('#addExchangeItem').on('click', function() {
-        const name = $('#exchangeItemName').val().trim();
-        const purity = $('#exchangePurity').val().trim();
-        const weight = parseFloat($('#exchangeWeight').val()) || 0;
-        const rate = parseFloat($('#exchangeRate').val()) || 0;
-        const wastagePercent = parseFloat($('#exchangeWastage').val()) || 0;
-        
-        if (!name || weight <= 0 || rate <= 0) {
-            alert('Please enter valid exchange item details');
+    // Function to calculate total for an exchange item
+    function calculateTotal(weight, rate, wastagePercent) {
+        const goldValue = weight * rate;
+        const wastageValue = goldValue * (wastagePercent / 100);
+        return goldValue + wastageValue;
+    }
+
+    // Function to render exchange table
+    function renderExchangeTable() {
+        const $tbody = $('#previewExchangeTable tbody').empty();
+
+        if (exchangeItems.length === 0) {
+            $('#exchangeContainer').hide();
+            $('#exchangeSummary').val('');
             return;
         }
-        
-        // Calculate total with wastage deduction
-        const wastageAmount = (weight * rate) * (wastagePercent / 100);
-        const total = (weight * rate) - wastageAmount;
-        
-        exchangeItems.push({ name, purity, weight, rate, wastagePercent, total });
-        renderExchangeTable();
-        calculateTotals();
-        
-        // Reset form
-        $('#exchangeItemName, #exchangePurity, #exchangeWeight, #exchangeRate, #exchangeWastage').val('');
+
+        $('#exchangeContainer').show();
+
+        const exchangeDetails = [];
+
+        exchangeItems.forEach((item, idx) => {
+            item.total = calculateTotal(item.weight, item.rate, item.wastagePercent);
+
+            $tbody.append(`
+                <tr data-index="${idx}">
+                    <td>${idx + 1}</td>
+                    <td>${item.name}</td>
+                    <td>${item.purity}</td>
+                    <td>${item.weight.toFixed(2)}</td>
+                    <td>₹${item.rate.toFixed(2)}</td>
+                    <td>${item.wastagePercent}%</td>
+                    <td>₹${item.total.toFixed(2)}</td>
+                    <td><button class="btn btn-sm btn-danger remove-exchange">❌</button></td>
+                </tr>
+            `);
+
+            exchangeDetails.push(`${item.name} (Purity: ${item.purity}, Wt: ${item.weight.toFixed(2)}gm, Rate: ₹${item.rate.toFixed(2)}, Wastage: ${item.wastagePercent}%, Total: ₹${item.total.toFixed(2)})`);
+        });
+
+        $('#exchangeSummary').val(exchangeDetails.join(' | '));
+    }
+
+    // Pre-fill exchangeItems from PHP variables
+    let phpExchangeItems = @json($exchangeItems);
+
+    phpExchangeItems.forEach(function(item) {
+        exchangeItems.push({
+            name: item.itemName,
+            purity: item.purity,
+            weight: parseFloat(item.weight) || 0,
+            rate: parseFloat(item.rate) || 0,
+            wastagePercent: parseFloat(item.wastage) || 0,
+            total: calculateTotal(
+                parseFloat(item.weight) || 0,
+                parseFloat(item.rate) || 0,
+                parseFloat(item.wastage) || 0
+            )
+        });
+    });
+
+    // Render the exchange table
+    renderExchangeTable();
+
+    // Add exchange item
+    $('#addExchangeItem').on('click', function() {
+        const form = $('#newExchangeItemForm');
+        if (form.is(':visible')) {
+            const name = $('#exchangeItemName').val().trim();
+            const purity = $('#exchangePurity').val().trim();
+            const weight = parseFloat($('#exchangeWeight').val()) || 0;
+            const rate = parseFloat($('#exchangeRate').val()) || 0;
+            const wastagePercent = parseFloat($('#exchangeWastage').val()) || 0;
+            
+            if (!name || weight <= 0 || rate <= 0) {
+                alert('Please enter valid exchange item details');
+                return;
+            }
+            
+            exchangeItems.push({ name, purity, weight, rate, wastagePercent, total: 0 });
+            renderExchangeTable();
+            calculateTotals();
+            
+            // Reset form and hide it
+            $('#exchangeItemName, #exchangePurity, #exchangeWeight, #exchangeRate, #exchangeWastage').val('');
+            form.hide();
+            $('#addExchangeItem').text('Add Exchange Item');
+        } else {
+            form.show();
+            $('#addExchangeItem').text('Save Exchange Item');
+        }
     });
 
     // Remove exchange item
@@ -1611,132 +1460,247 @@ $(document).ready(function() {
         calculateTotals();
     });
 
+    // Calculate totals function
+    function calculateTotals() {
+        let subTotal = 0, makingTotal = 0, discountTotal = 0, gstTotal = 0, totalGrossWeight = 0;
+
+        // Calculate totals from bill items
+        billItems.forEach(i => {
+            subTotal += i.goldValue;
+            makingTotal += i.makingValue;
+            discountTotal += i.discountAmount;
+            gstTotal += i.gstAmount;
+            totalGrossWeight += i.grossWeight * i.qty;
+        });
+
+        // New purchase total
+        const newPurchaseTotal = subTotal + makingTotal - discountTotal + gstTotal;
+
+        // Exchange total
+        const exchangeTotal = exchangeItems.reduce((sum, i) => sum + i.total, 0);
+
+        // Grand total before other charges
+        let grandTotal = newPurchaseTotal - exchangeTotal;
+
+        // Other Charges / Tax
+        const otherTaxPercent = parseFloat($('#otherTaxPercent').val()) || 0;
+        const otherTaxName = $('#otherTaxName').val().trim() || '-';
+        const otherTaxAmount = (grandTotal * otherTaxPercent) / 100;
+        grandTotal += otherTaxAmount;
+
+        // Customer payment
+        const paid = parseFloat($('#customerPayment').val()) || 0;
+        const balance = grandTotal - paid;
+
+        // Update preview fields
+        $('#previewSubTotal').text(subTotal.toFixed(2));
+        $('#previewMakingTotal').text(makingTotal.toFixed(2));
+        $('#previewDiscountTotal').text(discountTotal.toFixed(2));
+        $('#previewGstTotal').text(gstTotal.toFixed(2));
+        $('#previewTotalGrossWeight').text(totalGrossWeight.toFixed(2));
+        $('#previewNewPurchaseTotal').text(newPurchaseTotal.toFixed(2));
+        $('#previewExchangeTotal').text(exchangeTotal.toFixed(2));
+        $('#previewOtherTaxName').text(otherTaxName);
+        $('#previewOtherTaxAmount').text(otherTaxAmount.toFixed(2));
+        $('#previewGrandTotal').text(grandTotal.toFixed(2));
+        $('#previewCustomerPaid').text(paid.toFixed(2));
+        $('#previewBalanceDue').text(balance.toFixed(2));
+
+        // Convert amount to words
+        $('#amountInWords').text(numberToWords(grandTotal));
+    }
+
+    function numberToWords(num) {
+        if (num === 0) return 'Zero Rupees Only';
+        const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+        const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+        const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+        
+        let words = '';
+        const crore = Math.floor(num / 10000000);
+        const lakh = Math.floor((num % 10000000) / 100000);
+        const thousand = Math.floor((num % 100000) / 1000);
+        const hundred = Math.floor((num % 1000) / 100);
+        const remainder = Math.floor(num % 100);
+        
+        if (crore > 0) words += ones[crore] + ' Crore ';
+        if (lakh > 0) words += (lakh < 10 ? ones[lakh] : tens[Math.floor(lakh / 10)] + ' ' + ones[lakh % 10]) + ' Lakh ';
+        if (thousand > 0) words += (thousand < 10 ? ones[thousand] : tens[Math.floor(thousand / 10)] + ' ' + ones[thousand % 10]) + ' Thousand ';
+        if (hundred > 0) words += ones[hundred] + ' Hundred ';
+        if (remainder >= 10 && remainder < 20) words += teens[remainder - 10] + ' ';
+        else if (remainder >= 20) words += tens[Math.floor(remainder / 10)] + ' ' + ones[remainder % 10] + ' ';
+        else if (remainder > 0) words += ones[remainder] + ' ';
+        
+        return words.trim() + ' Rupees Only';
+    }
+
+    // When customer is selected, fetch ID and update hidden input + preview
+    function updateCustomerDetails() {
+        const selected = $('#customer').find('option:selected');
+        const customerId = selected.val();
+        const name = selected.data('name') || '-';
+        const phone = selected.data('phone') || '-';
+        const email = selected.data('email') || '-';
+        const address = selected.data('address') || '-';
+
+        // Set hidden input for form submission
+        $('#inputCustomerId').val(customerId);
+
+        // Update invoice preview section live
+        $('#previewCustomerName').text(name);
+        $('#previewCustomerPhone').text(phone);
+        $('#previewCustomerEmail').text(email);
+        $('#previewCustomerAddress').text(address);
+    }
+
+    // Run when customer changes manually
+    $('#customer').on('change', updateCustomerDetails);
+
+    // Also run automatically if a customer is already selected (e.g., edit mode)
+    if ($('#customer').val()) {
+        updateCustomerDetails();
+    }
+
     // Update totals when customer payment changes
     $('#customerPayment').on('input', calculateTotals);
+
+    // Recalculate when Other Tax changes
+    $('#otherTaxPercent, #otherTaxName').on('input', calculateTotals);
 
     // Initialize
     calculateItemValues();
     calculateTotals();
 });
 
-
-
-
-
-
-
-
-
-
-</script>
-<script>
 $(document).ready(function() {
+    const isEditMode = {{ $isEditMode ? 'true' : 'false' }};
+    const invoiceId = {{ $invoiceId ?? 'null' }};
 
-    // Click on Print button triggers form submission
-    $('.btn-print').on('click', function() {
-        $('#invoiceForm').submit();
+    // Cancel button - redirect back
+    $('#cancelBtn').on('click', function() {
+        if (confirm('Are you sure you want to cancel? Any unsaved changes will be lost.')) {
+            window.history.back();
+        }
     });
 
-    $('#invoiceForm').on('submit', function(e) {
-        e.preventDefault(); // prevent normal submit
-
-        // --- CUSTOMER & BILL INFO ---
-        $('#inputBillName').val($('#previewCustomerName').text().trim());
-        $('#inputDueDate').val($('#previewDueDate').text().trim());
-        $('#inputCustomerId').val($('#customer').val() || '');
-
-        // --- BILL ITEMS (New Purchase) ---
-        let safeBillItems = typeof billItems !== 'undefined' ? billItems : [];
-        $('#inputItems').val(JSON.stringify(safeBillItems));
-
-        // --- EXCHANGE ITEMS ---
-        let safeExchangeItems = (typeof exchangeItems !== 'undefined' && exchangeItems.length > 0) ? exchangeItems : [];
-
-        // --- OTHER CHARGES + EXCHANGE INFO ---
-        let otherCharges = {
-            name: $('#otherTaxName').val()?.trim() || '-',
-            percent: parseFloat($('#otherTaxPercent').val()) || 0,
-            amount: parseFloat($('#previewOtherTaxAmount').text()) || 0,
-            exchange: safeExchangeItems
-        };
-        $('#inputOtherCharges').val(JSON.stringify(otherCharges));
-
-        // --- PAYMENT & TOTALS ---
-        $('#inputPaidAmount').val(parseFloat($('#customerPayment').val()) || 0);
-        $('#inputDueAmount').val(parseFloat($('#previewBalanceDue').text()) || 0);
-        $('#inputGrandTotal').val(parseFloat($('#previewGrandTotal').text()) || 0);
-
-        // --- Submit form via AJAX ---
-        let form = $(this);
-        $.ajax({
-            url: form.attr('action'),
-            method: form.attr('method'),
-            data: form.serialize(),
-            success: function(response) {
-                // ✅ Show alert first
-                alert('Invoice saved successfully!');
-
-                // Then trigger print
-                printInvoice();
-            },
-            error: function(err) {
-                alert('Form submission failed!');
-                console.error(err);
-            }
-        });
+    // Save button (for new invoices)
+    $('#saveBtn').on('click', function() {
+        submitInvoiceForm('POST', null);
     });
 
-    // --- Print Function ---
-    function printInvoice() {
-        const invoicePreview = document.getElementById('invoicePreview');
-        if (!invoicePreview) {
-            alert("Invoice content not found!");
+    // Update button (for existing invoices)
+    $('#updateBtn').on('click', function() {
+        submitInvoiceForm('PUT', invoiceId);
+    });
+
+    // Delete button
+    $('#deleteBtn').on('click', function() {
+        if (confirm('Are you sure you want to delete this invoice? This action cannot be undone.')) {
+            deleteInvoice(invoiceId);
+        }
+    });
+
+    function submitInvoiceForm(method, id) {
+        // Validate required fields
+        if (!$('#customer').val()) {
+            alert('Please select a customer');
             return;
         }
 
-        const iframe = document.createElement('iframe');
-        iframe.style.position = 'absolute';
-        iframe.style.width = '0';
-        iframe.style.height = '0';
-        iframe.style.border = '0';
-        document.body.appendChild(iframe);
+        if (billItems.length === 0) {
+            alert('Please add at least one item to the invoice');
+            return;
+        }
 
-        const doc = iframe.contentWindow.document;
-        doc.open();
-        doc.write('<!DOCTYPE html><html><head><title>Invoice</title>');
+        if (!$('#paymentModeSelect').val()) {
+            alert('Please select a payment mode');
+            return;
+        }
 
-        // Copy styles
-        Array.from(document.querySelectorAll('link[rel="stylesheet"], style')).forEach(styleEl => {
-            doc.write(styleEl.outerHTML);
+        $('#inputCustomerId').val($('#customer').val());
+        $('#inputBillName').val($('#billerNameInput').val()); // Use biller name, not customer name
+        $('#duedate').val($('#dueDateInput').val());
+        $('#inputPaymentMode').val($('#paymentModeSelect').val());
+        $('#customerPaymentCopy').val($('#customerPayment').val());
+
+        // Prepare form data
+        const form = $('#invoiceForm');
+        const action = isEditMode && id ? `/invoices/${id}` : '{{ route("invoices.store") }}';
+        
+        form.attr('action', action);
+        form.attr('method', 'POST');
+
+        form.find('input[name="_method"]').remove();
+        if (method === 'PUT') {
+            form.append(`<input type="hidden" name="_method" value="PUT">`);
+        }
+
+        const formData = form.serialize();
+        
+        console.log("[v0] Submitting form with data:", formData);
+        console.log("[v0] Method:", method, "Action:", action);
+
+        $.ajax({
+            url: action,
+            method: 'POST',
+            data: formData,
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function(response) {
+                console.log("[v0] Success response:", response);
+                alert(isEditMode ? 'Invoice updated successfully!' : 'Invoice saved successfully!');
+                window.location.href = '/invoices'; // Redirect to invoices list
+            },
+            error: function(xhr, status, error) {
+                console.error("[v0] Error:", xhr, status, error);
+                
+                let errorMessage = 'Form submission failed!';
+                
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                } else if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    errorMessage = Object.values(xhr.responseJSON.errors).flat().join('\n');
+                } else if (xhr.responseText) {
+                    errorMessage = xhr.responseText;
+                }
+                
+                alert('Error: ' + errorMessage);
+                console.error("[v0] Full error response:", xhr.responseJSON || xhr.responseText);
+            }
         });
-
-        // Optional print-specific styles
-        doc.write(`<style>
-            @page { size: A4; margin: 20mm; }
-            body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
-            #invoicePreview { display: flex; flex-direction: column; justify-content: flex-start; }
-            table { page-break-inside: auto; }
-            tr { page-break-inside: avoid; page-break-after: auto; }
-        </style>`);
-
-        doc.write('</head><body>');
-        doc.write(invoicePreview.outerHTML);
-        doc.write('</body></html>');
-        doc.close();
-
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
-
-        setTimeout(() => {
-            document.body.removeChild(iframe);
-        }, 1000);
     }
 
+    // Delete invoice
+    function deleteInvoice(id) {
+        const deleteForm = $('#deleteForm');
+        deleteForm.attr('action', `/invoices/${id}`);
+
+        $.ajax({
+            url: `/invoices/${id}`,
+            method: 'DELETE',
+            data: deleteForm.serialize(),
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function(response) {
+                console.log("[v0] Invoice deleted successfully");
+                alert('Invoice deleted successfully!');
+                window.location.href = '/invoices'; // Redirect to invoices list
+            },
+            error: function(xhr, status, error) {
+                console.error("[v0] Delete error:", xhr);
+                let errorMessage = 'Deletion failed!';
+                
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                
+                alert('Error: ' + errorMessage);
+            }
+        });
+    }
 });
 </script>
-
-
-
-
 
 @endsection
