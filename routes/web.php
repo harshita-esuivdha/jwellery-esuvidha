@@ -10,6 +10,8 @@ use App\Http\Controllers\MetalRateController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\BillController;
 use App\Http\Controllers\CreatePurchasesTable;
+
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -121,3 +123,10 @@ Route::post('/purchases/store', [CreatePurchasesTable::class, 'store'])->name('p
 Route::get('/purchases/{id}/edit', [CreatePurchasesTable::class, 'edit'])->name('purchases.edit');
 Route::put('/purchases/{id}', [CreatePurchasesTable::class, 'update'])->name('purchases.update');
 Route::delete('/purchases/{id}', [CreatePurchasesTable::class, 'destroy'])->name('purchases.destroy');
+
+Route::post('/invoices/save-image', [BillController::class, 'saveImage'])->name('invoices.saveImage');
+Route::resource('invoices', BillController::class);
+
+
+
+

@@ -173,12 +173,12 @@
                     <h4 id="totalAmount">₹0</h4>
                 </div>
             </div>
-            <div class="col-md-4">
+            {{-- <div class="col-md-4">
                 <div class="p-2 shadow-sm rounded" style="background-color:#fff3e0;">
                     <h6>Total Remaining</h6>
                     <h4 id="totalRemaining">₹0</h4>
                 </div>
-            </div>
+            </div> --}}
         </div>
 
         <div class="row">

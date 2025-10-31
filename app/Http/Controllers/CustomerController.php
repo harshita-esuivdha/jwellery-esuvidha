@@ -125,7 +125,7 @@ public function store(Request $request)
         'aadhaar_number' => ['nullable','digits:12'],
         'bank_name' => 'nullable|string|max:255',
         'bank_account' => ['nullable','digits_between:9,18'],
-        'ifsc_code' => ['nullable','regex:/^[A-Z]{4}0[A-Z0-9]{6}$/'],
+
         'dob' => 'nullable|date',
     ], [
         'pan_number.regex' => 'PAN must be 10 characters in format: AAAAA9999A.',

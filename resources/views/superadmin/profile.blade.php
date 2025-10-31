@@ -37,9 +37,40 @@
                 </div>
 
                 <div class="col-md-6">
-                    <label class="form-label fw-bold">Password <small class="text-muted">(leave blank to keep current)</small></label>
-                    <input type="password" name="password" class="form-control form-control-lg" placeholder="New Password">
-                </div>
+    <label class="form-label fw-bold">
+        Password <small class="text-muted">(leave blank to keep current)</small>
+    </label>
+    <div class="input-group">
+        <input type="password" name="password" id="passwordField"
+               class="form-control form-control-lg"
+               placeholder="New Password">
+        <button type="button" class="btn btn-outline-secondary" id="togglePassword">
+            <i class="fa fa-eye"></i>
+        </button>
+    </div>
+</div>
+
+<!-- Font Awesome (for the eye icon) -->
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+<script>
+document.getElementById('togglePassword').addEventListener('click', function () {
+    const passwordField = document.getElementById('passwordField');
+    const icon = this.querySelector('i');
+    
+    if (passwordField.type === 'password') {
+        passwordField.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        passwordField.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+});
+</script>
+
             </div>
 
             <div class="mb-3 mt-2">

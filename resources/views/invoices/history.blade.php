@@ -57,7 +57,7 @@
             </td>
             <td>
     <!-- Edit Button -->
-    <a href="{{ route('billing.index', $invoice->id) }}" class="btn btn-sm btn-warning">Edit</a>
+    {{-- <a href="{{ route('billing.index', $invoice->id) }}" class="btn btn-sm btn-warning">Edit</a> --}}
 
     <!-- Delete Button -->
     <form action="{{ route('invoices.destroy', $invoice->id) }}" method="POST" style="display:inline-block">

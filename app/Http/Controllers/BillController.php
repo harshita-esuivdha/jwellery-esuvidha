@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\File;
 
 class BillController extends Controller
 {
@@ -83,6 +86,25 @@ public function create()
     }
 
 
+public function saveImage(Request $request)
+{
+    $imageData = $request->invoice_image;
+    $invoiceId = $request->invoice_id;
+
+    // Decode base64 image
+    $image = str_replace('data:image/png;base64,', '', $imageData);
+    $image = str_replace(' ', '+', $image);
+    $imageName = 'invoice_' . $invoiceId . '_' . time() . '.png';
+    $path = public_path('uploads/invoices/' . $imageName);
+    file_put_contents($path, base64_decode($image));
+
+    // Optionally update DB
+    DB::table('invoices')->where('id', $invoiceId)->update([
+        'invoice_image' => 'uploads/invoices/' . $imageName,
+    ]);
+
+    return response()->json(['success' => true, 'path' => 'uploads/invoices/' . $imageName]);
+}
 
 
 public function history(Request $request)
@@ -142,43 +164,62 @@ $query = DB::table('invoices')
     return view('invoices.history', compact('invoices', 'invoiceItems'));
 }
 
-    public function store(Request $request)
-    {
-        // Validate input
-        $request->validate([
-            'cin_id' => 'required|integer',
-            'customer_id' => 'required|integer',
-            'bill_name' => 'required|string',
-            'bill_no' => 'required|string',
-            'due_date' => 'required|date',
-            'items' => 'required',
-            'exchange_summary' => 'nullable|string',
-            'other_charges' => 'nullable|string',
-            'paid_amount' => 'nullable|numeric',
-            'due_amount' => 'nullable|numeric',
-            'grand_total' => 'required|numeric',
-            'payment_mode' => 'nullable|string',
-        ]);
-        // Insert into table
-        $id = DB::table('invoices')->insertGetId([
-            'cin_id' => $request->cin_id,
-            'customer_id' => $request->customer_id,
-            'bill_name' => $request->bill_name,
-            'bill_no' => $request->bill_no,
-            'due_date' => $request->due_date,
-            'items' => $request->items,
-            'exchange_summary' => $request->exchange_summary,
-            'other_charges' => $request->other_charges,
-            'paid_amount' => $request->paid_amount ?? 0,
-            'due_amount' => $request->due_amount ?? 0,
-            'grand_total' => $request->grand_total,
-            'payment_mode' => $request->payment_mode,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+public function store(Request $request)
+{
+    // Validate
+    $request->validate([
+        'cin_id' => 'required|integer',
+        'customer_id' => 'required|integer',
+        'bill_name' => 'required|string',
+        'bill_no' => 'required|string',
+        'due_date' => 'required|date',
+        'items' => 'required',
+        'exchange_summary' => 'nullable|string',
+        'other_charges' => 'nullable|string',
+        'paid_amount' => 'nullable|numeric',
+        'due_amount' => 'nullable|numeric',
+        'grand_total' => 'required|numeric',
+        'payment_mode' => 'nullable|string',
+    ]);
 
-      return redirect()->back()->with('success', 'Invoice generated successfully!');
+    // Save invoice
+    $invoiceId = DB::table('invoices')->insertGetId([
+        'cin_id' => $request->cin_id,
+        'customer_id' => $request->customer_id,
+        'bill_name' => $request->bill_name,
+        'bill_no' => $request->bill_no,
+        'due_date' => $request->due_date,
+        'items' => is_array($request->items) ? json_encode($request->items) : $request->items,
+        'exchange_summary' => $request->exchange_summary,
+        'other_charges' => $request->other_charges,
+        'paid_amount' => $request->paid_amount ?? 0,
+        'due_amount' => $request->due_amount ?? 0,
+        'grand_total' => $request->grand_total,
+        'payment_mode' => $request->payment_mode,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    // Deduct stock
+    $items = is_string($request->items) ? json_decode($request->items, true) : $request->items;
+
+    if (is_array($items)) {
+        foreach ($items as $item) {
+            $itemId = $item['id'] ?? null;
+            $qty = $item['qty'] ?? 0;
+
+            if ($itemId && $qty > 0) {
+                DB::table('items')
+                    ->where('id', $itemId)
+                    ->decrement('stock', $qty);
+            }
+        }
     }
+
+    return redirect()->back()->with('success', 'Invoice generated and stock updated successfully!');
+}
+
+
 public function destroy($id)
     {
         // Delete the invoice

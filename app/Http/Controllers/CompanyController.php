@@ -48,26 +48,35 @@ public function subDashboard()
         });
 
     // Product-wise sales (from items column in invoices)
-    $productAnalysis = [];
-    foreach ($invoices as $invoice) {
-        $items = json_decode($invoice->items, true) ?? [];
-        foreach ($items as $item) {
-            $itemId = $item['id'] ?? null;
-            $qty = $item['qty'] ?? 0;
-            if ($itemId) {
-                if(!isset($productAnalysis[$itemId])) {
-                    $product = DB::table('items')->where('id', $itemId)->first();
-                    $productAnalysis[$itemId] = [
-                        'name' => $product->item_name ?? 'Unknown',
-                        'qty' => 0,
-                        'total_value' => 0
-                    ];
-                }
-                $productAnalysis[$itemId]['qty'] += $qty;
-                $productAnalysis[$itemId]['total_value'] += ($productAnalysis[$itemId]['total_value'] ?? 0) + ($product->price ?? 0) * $qty;
+$productAnalysis = [];
+
+foreach ($invoices as $invoice) {
+    $items = json_decode($invoice->items, true) ?? [];
+
+    foreach ($items as $item) {
+        $itemId = $item['id'] ?? null;
+        $qty = $item['qty'] ?? 0;
+
+        if ($itemId) {
+            // Fetch product only once per ID
+            if (!isset($productAnalysis[$itemId])) {
+                $product = DB::table('items')->where('id', $itemId)->first();
+
+                $productAnalysis[$itemId] = [
+                    'name' => $product->item_name ?? 'Unknown',
+                    'qty' => 0,
+                    'total_value' => 0,
+                    'price' => $product->price ?? 0, // Make sure column name matches DB
+                ];
             }
+
+            // Accumulate quantity and value
+            $productAnalysis[$itemId]['qty'] += $qty;
+            $productAnalysis[$itemId]['total_value'] += ($productAnalysis[$itemId]['price'] ?? 0) * $qty;
         }
     }
+}
+
 
     return view('sub.dashboard', [
         'latest' => $latest,

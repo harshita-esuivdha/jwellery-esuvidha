@@ -128,6 +128,7 @@ body {
 </head>
 <body>
 
+
 <!-- Particle Background -->
 <canvas id="particles-bg"></canvas>
 
@@ -154,6 +155,9 @@ body {
             <a href="{{ route('superadmin.profile') }}"><i class="bi bi-person"></i> Profile</a>
         @endif
         @if($superadmin->role === 'Admin')
+         <a href="{{ route('company.register') }}" class="{{ request()->routeIs('company.register') ? 'active-link' : '' }}">
+                <i class="bi bi-person-plus me-2"></i> Register
+            </a>
             <a href="{{ route('companies.public') }}"><i class="bi bi-building"></i> View Companies</a>
             <a href="{{ route('superadmin.profile') }}"><i class="bi bi-person"></i> Profile</a>
         @endif
@@ -161,7 +165,8 @@ body {
 
     @if($company)
         <a href="{{ route('sub.dashboard') }}" class="{{ request()->routeIs('sub.dashboard') ? 'active-link' : '' }}"><i class="bi bi-speedometer2"></i> Dashboard</a>
-
+     {{-- Register --}}
+               
         <h6 class="text-uppercase px-3 mt-3 mb-2" style="color:#8a6d00;">Profile</h6>
         <a href="{{ route('Company.profile') }}" class="{{ request()->routeIs('Company.profile') ? 'active-link' : '' }}"><i class="bi bi-person"></i> Edit Profile</a>
 

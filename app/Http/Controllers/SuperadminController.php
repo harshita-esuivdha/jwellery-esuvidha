@@ -66,28 +66,55 @@ public function register(Request $request)
 
     return back()->with('success', "Superadmin registered successfully. Login credentials have been sent to {$superadmin->email}.");
 }
-public function dashboard()
+public function dashboard(Request $request)
 {
     // Count total companies
     $totalCompanies = Company::count();
 
-    // Count total invoices (example)
-    $totalInvoices = 125; 
+    // Example total invoices count
+    $totalInvoices = 125;
 
     // Current financial year
     $currentFinancialYear = '2025-2026';
 
-    // Fetch all superadmins
-    $superadmins = Superadmin::all(); // or add conditions if needed
+    // Get filters
+    $filter = $request->input('expiry_filter');
+    $fromDate = $request->input('from_date');
+    $toDate = $request->input('to_date');
 
-    // Pass everything to the view
+    $query = Superadmin::query();
+
+    // Predefined filter options
+    if ($filter == 'expired') {
+        $query->whereDate('expiry_date', '<', now());
+    } elseif ($filter == 'expiring_soon') {
+        $query->whereBetween('expiry_date', [now(), now()->addDays(30)]);
+    } elseif ($filter == 'active') {
+        $query->whereDate('expiry_date', '>', now()->addDays(30));
+    }
+
+    // ✅ Range-wise custom filter
+    if ($fromDate && $toDate) {
+        $query->whereBetween('expiry_date', [$fromDate, $toDate]);
+    } elseif ($fromDate) {
+        $query->whereDate('expiry_date', '>=', $fromDate);
+    } elseif ($toDate) {
+        $query->whereDate('expiry_date', '<=', $toDate);
+    }
+
+    $superadmins = $query->orderBy('expiry_date', 'asc')->get();
+
     return view('superadmin.dashboard', compact(
-        'totalCompanies', 
-        'totalInvoices', 
+        'totalCompanies',
+        'totalInvoices',
         'currentFinancialYear',
-        'superadmins' // <-- this fixes the undefined variable
+        'superadmins',
+        'filter',
+        'fromDate',
+        'toDate'
     ));
 }
+
 public function updateExpiry(Request $request, $id)
 {
     $request->validate([

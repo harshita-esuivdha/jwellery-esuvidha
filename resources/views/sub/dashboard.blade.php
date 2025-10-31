@@ -122,7 +122,7 @@
                     <tr>
                         <th>Product Name</th>
                         <th>Quantity Sold</th>
-                        <th>Total Value (₹)</th>
+                        {{-- <th>Total Value (₹)</th> --}}
                     </tr>
                 </thead>
                 <tbody>
@@ -130,7 +130,7 @@
                         <tr>
                             <td>{{ $product['name'] }}</td>
                             <td>{{ $product['qty'] }}</td>
-                            <td>{{ number_format($product['total_value'], 2) }}</td>
+                            {{-- <td>{{ number_format($product['total_value'], 2) }}</td> --}}
                         </tr>
                     @empty
                         <tr><td colspan="3" class="text-center">No data found</td></tr>
